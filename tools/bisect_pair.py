@@ -23,13 +23,13 @@ rightf = open('right', 'w')
 rightf.write(file2)
 rightf.close()
 
-print 'running files'
+print('running files')
 left_result = run_js('left', stderr=PIPE)
 right_result = run_js('right', stderr=PIPE) # right as in left-right, not as in correct
 assert left_result != right_result
 
 # Calculate diff chunks
-print 'diffing'
+print('diffing')
 diff = Popen(['diff', '-U', '5', 'left', 'right'], stdout=PIPE).communicate()[0].split('\n')
 pre_diff = diff[:2]
 diff = diff[2:]
@@ -49,12 +49,12 @@ if len(curr) > 0:
 # Bisect both sides of the span, until we have a single chunk
 high = len(chunks)
 
-print 'beginning bisection, %d chunks' % high
+print('beginning bisection, %d chunks' % high)
 
 for mid in range(high):
-  print '  current: %d' % mid
+  print('  current: %d' % mid)
   # Take chunks from the middle and on. This is important because the eliminator removes variables, so starting from the beginning will add errors
-  curr_diff = '\n'.join(map(lambda parts: '\n'.join(parts), chunks[mid:])) + '\n'
+  curr_diff = '\n'.join(['\n'.join(parts) for parts in chunks[mid:]]) + '\n'
   difff = open('diff.diff', 'w')
   difff.write(curr_diff)
   difff.close()
@@ -62,7 +62,7 @@ for mid in range(high):
   Popen(['patch', 'middle', 'diff.diff'], stdout=PIPE, stderr=PIPE).communicate()
   result = run_js('middle', stderr=PIPE)
   if result == left_result:
-    print 'found where it starts to work: %d' % mid
+    print('found where it starts to work: %d' % mid)
     found = mid
     break
 
@@ -71,12 +71,12 @@ critical = '\n'.join(chunks[found-1]) + '\n'
 c = open('critical.diff', 'w')
 c.write(critical)
 c.close()
-print 'sanity check'
+print('sanity check')
 shutil.copy('middle', 'middle2')
 Popen(['patch', 'middle2', 'critical.diff'], stdout=PIPE, stderr=PIPE).communicate()
 assert run_js('middle', stderr=PIPE) == left_result, 'middle was expected %s' % left_result
 assert run_js('middle2', stderr=PIPE) != left_result, 'middle2 was expected NOT %s' % left_result
 
-print 'middle is like left, middle2 is like right, critical.diff is the difference that matters,'
-print critical
+print('middle is like left, middle2 is like right, critical.diff is the difference that matters,')
+print(critical)
 

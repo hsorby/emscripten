@@ -15,7 +15,7 @@ DEBUG = os.environ.get('EMCC_DEBUG')
 newargs = [shared.LLVM_AR] + sys.argv[1:]
 
 if DEBUG:
-  print >> sys.stderr, 'emar:', sys.argv, '  ==>  ', newargs
+  print('emar:', sys.argv, '  ==>  ', newargs, file=sys.stderr)
 
 if len(newargs) > 2:
   subprocess.call(newargs)

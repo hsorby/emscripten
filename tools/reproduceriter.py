@@ -126,19 +126,19 @@ assert os.path.exists(os.path.join(in_dir, first_js))
 
 # Copy project
 
-print 'copying tree...'
+print('copying tree...')
 
 shutil.copytree(in_dir, out_dir)
 
 # Add customizations in all JS files
 
-print 'add customizations...'
+print('add customizations...')
 
 for parent, dirs, files in os.walk(out_dir):
   for filename in files:
     if filename.endswith('.js'):
       fullname = os.path.join(parent, filename)
-      print '   ', fullname
+      print('   ', fullname)
       js = open(fullname).read()
       js = re.sub('document\.on(\w+) ?= ?([\w.$]+)', lambda m: 'Recorder.onEvent("' + m.group(1) + '", ' + m.group(2) + ')', js)
       js = re.sub('''([\w.'"\[\]]+)\.addEventListener\(([\w,. $]+)\)''', lambda m: 'Recorder.addListener(' + m.group(1) + ', ' + m.group(2) + ')', js)
@@ -146,7 +146,7 @@ for parent, dirs, files in os.walk(out_dir):
 
 # Add our boilerplate
 
-print 'add boilerplate...'
+print('add boilerplate...')
 
 open(os.path.join(out_dir, first_js), 'w').write(
   (open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src', 'headless.js')).read() % (
@@ -156,5 +156,5 @@ open(os.path.join(out_dir, first_js), 'w').write(
   open(os.path.join(in_dir, first_js)).read() + ('\nwindow.runEventLoop();\n' if shell else '')
 )
 
-print 'done!'
+print('done!')
 

@@ -16,10 +16,10 @@ so you may prefer to use fewer cores here.
 '''
 
 from subprocess import Popen, PIPE, STDOUT
-import os, unittest, tempfile, shutil, time, inspect, sys, math, glob, tempfile, re, difflib, webbrowser, hashlib, threading, platform, BaseHTTPServer, multiprocessing, functools, stat
+import os, unittest, tempfile, shutil, time, inspect, sys, math, glob, tempfile, re, difflib, webbrowser, hashlib, threading, platform, http.server, multiprocessing, functools, stat
 
 if len(sys.argv) == 1:
-  print '''
+  print('''
 ==============================================================================
 Running the main part of the test suite. Don't forget to run the other parts!
 
@@ -51,7 +51,7 @@ an individual test with
 
 ==============================================================================
 
-'''
+''')
   time.sleep(2)
 
 # Setup
@@ -120,7 +120,7 @@ class RunnerCore(unittest.TestCase):
           # TODO assert not temp_file.startswith('emscripten_'), temp_file
 
   def skip(self, why):
-    print >> sys.stderr, '<skipping: %s> ' % why,
+    print('<skipping: %s> ' % why, end=' ', file=sys.stderr)
 
   def get_dir(self):
     return self.working_dir
@@ -134,7 +134,7 @@ class RunnerCore(unittest.TestCase):
     elif platform.system() == 'Darwin':
       return linux_name.replace('.so', '') + '.dylib'
     else:
-      print >> sys.stderr, 'get_shared_library_name needs to be implemented on %s' % platform.system()
+      print('get_shared_library_name needs to be implemented on %s' % platform.system(), file=sys.stderr)
       return linux_name
 
   def get_stdout_path(self):
@@ -177,7 +177,7 @@ class RunnerCore(unittest.TestCase):
 
     def run_post(post):
       if not post: return
-      exec post in locals()
+      exec(post, locals())
       shutil.copyfile(filename + '.o.js', filename + '.o.js.prepost.js')
       process(filename + '.o.js')
 
@@ -227,7 +227,7 @@ process(sys.argv[1])
       shutil.copytree(src, dirname)
       shutil.move(os.path.join(dirname, main_file), filename)
       # the additional files were copied; alter additional_files to point to their full paths now
-      additional_files = map(lambda f: os.path.join(dirname, f), additional_files)
+      additional_files = [os.path.join(dirname, f) for f in additional_files]
       os.chdir(self.get_dir())
 
     # C++ => LLVM binary
@@ -240,7 +240,7 @@ process(sys.argv[1])
         pass
       args = [Building.COMPILER, '-emit-llvm'] + COMPILER_OPTS + Building.COMPILER_TEST_OPTS + \
              ['-I', dirname, '-I', os.path.join(dirname, 'include')] + \
-             map(lambda include: '-I' + include, includes) + \
+             ['-I' + include for include in includes] + \
              ['-c', f, '-o', f + '.o']
       output = Popen(args, stdout=PIPE, stderr=self.stderr_redirect).communicate()[0]
       assert os.path.exists(f + '.o'), 'Source compilation error: ' + output
@@ -248,10 +248,10 @@ process(sys.argv[1])
     # Link all files
     if len(additional_files) + len(libraries) > 0:
       shutil.move(filename + '.o', filename + '.o.alone')
-      Building.link([filename + '.o.alone'] + map(lambda f: f + '.o', additional_files) + libraries,
+      Building.link([filename + '.o.alone'] + [f + '.o' for f in additional_files] + libraries,
                filename + '.o')
       if not os.path.exists(filename + '.o'):
-        print "Failed to link LLVM binaries:\n\n", output
+        print("Failed to link LLVM binaries:\n\n", output)
         raise Exception("Linkage error");
 
     # Finalize
@@ -328,7 +328,7 @@ process(sys.argv[1])
     cache_name = name + cache_name_extra
     if self.library_cache is not None:
       if cache and self.library_cache.get(cache_name):
-        print >> sys.stderr,  '<load %s from cache> ' % cache_name,
+        print('<load %s from cache> ' % cache_name, end=' ', file=sys.stderr)
         generated_libs = []
         for basename, contents in self.library_cache[cache_name]:
           bc_file = os.path.join(build_dir, basename)
@@ -338,7 +338,7 @@ process(sys.argv[1])
           generated_libs.append(bc_file)
         return generated_libs
 
-    print >> sys.stderr, '<building and saving %s into cache> ' % cache_name,
+    print('<building and saving %s into cache> ' % cache_name, end=' ', file=sys.stderr)
 
     return Building.build_library(name, build_dir, output_dir, generated_libs, configure, configure_args, make, make_args, self.library_cache, cache_name,
                                   copy_project=True, env_init=env_init)
@@ -410,16 +410,16 @@ process(sys.argv[1])
 
 ###################################################################################################
 
-sys.argv = map(lambda arg: arg if not arg.startswith('test_') else 'default.' + arg, sys.argv)
+sys.argv = [arg if not arg.startswith('test_') else 'default.' + arg for arg in sys.argv]
 
 if 'benchmark' not in str(sys.argv) and 'sanity' not in str(sys.argv) and 'browser' not in str(sys.argv):
   # Tests
 
-  print "Running Emscripten tests..."
+  print("Running Emscripten tests...")
 
   if len(sys.argv) == 2 and 'ALL.' in sys.argv[1]:
     ignore, test = sys.argv[1].split('.')
-    print 'Running all test modes on test "%s"' % test
+    print('Running all test modes on test "%s"' % test)
     sys.argv = [sys.argv[0], 'default.'+test, 'o1.'+test, 'o2.'+test, 's_0_0.'+test, 's_0_1.'+test, 's_0_1_q1.'+test, 's_1_0.'+test, 's_1_1.'+test, 's_1_1_q1.'+test]
 
   class T(RunnerCore): # Short name, to make it more fun to use manually on the commandline
@@ -439,8 +439,8 @@ if 'benchmark' not in str(sys.argv) and 'sanity' not in str(sys.argv) and 'brows
         if js_engines is None:
           js_engines = JS_ENGINES
         if Settings.USE_TYPED_ARRAYS:
-          js_engines = filter(lambda engine: engine != V8_ENGINE, js_engines) # V8 issue 1822
-        js_engines = filter(lambda engine: engine not in self.banned_js_engines, js_engines)
+          js_engines = [engine for engine in js_engines if engine != V8_ENGINE] # V8 issue 1822
+        js_engines = [engine for engine in js_engines if engine not in self.banned_js_engines]
         if len(js_engines) == 0: return self.skip('No JS engine present to run this test with. Check %s and the paths therein.' % EM_CONFIG)
         for engine in js_engines:
           js_output = self.run_generated_code(engine, filename + '.o.js', args)
@@ -1240,7 +1240,7 @@ c5,de,15,8a
 
         try:
           self.do_run(src, '*300:1*\n*515559*\n*42949672960*\n')
-        except Exception, e:
+        except Exception as e:
           assert 'must be aligned' in str(e), e # expected to fail without emulation
 
     def test_unsigned(self):
@@ -2220,7 +2220,7 @@ c5,de,15,8a
       Settings.SAFE_HEAP = 1
 
       for addr in ['0', '7', 'new D2()']:
-        print addr
+        print(addr)
         src = r'''
           #include <stdio.h>
 
@@ -5912,7 +5912,7 @@ def process(filename):
                    #build_ll_hook=self.do_autodebug)
 
       # github issue 324
-      print '[issue 324]'
+      print('[issue 324]')
       self.do_run(open(path_from_root('tests', 'freetype', 'main_2.c'), 'r').read(),
                    open(path_from_root('tests', 'freetype', 'ref_2.txt'), 'r').read(),
                    ['font.ttf', 'w', '32', '32', '25'],
@@ -5920,7 +5920,7 @@ def process(filename):
                    includes=[path_from_root('tests', 'freetype', 'include')],
                    post_build=post)
 
-      print '[issue 324 case 2]'
+      print('[issue 324 case 2]')
       self.do_run(open(path_from_root('tests', 'freetype', 'main_3.c'), 'r').read(),
                    open(path_from_root('tests', 'freetype', 'ref_3.txt'), 'r').read(),
                    ['font.ttf', 'W', '32', '32', '0'],
@@ -5928,7 +5928,7 @@ def process(filename):
                    includes=[path_from_root('tests', 'freetype', 'include')],
                    post_build=post)
 
-      print '[issue 324 case 3]'
+      print('[issue 324 case 3]')
       self.do_run('',
                    open(path_from_root('tests', 'freetype', 'ref_4.txt'), 'r').read(),
                    ['font.ttf', 'ea', '40', '32', '0'],
@@ -6007,7 +6007,7 @@ def process(filename):
 
       # See post(), below
       input_file = open(os.path.join(self.get_dir(), 'paper.pdf.js'), 'w')
-      input_file.write(str(map(ord, open(path_from_root('tests', 'poppler', 'paper.pdf'), 'rb').read())))
+      input_file.write(str(list(map(ord, open(path_from_root('tests', 'poppler', 'paper.pdf'), 'rb').read()))))
       input_file.close()
 
       post = '''
@@ -6089,10 +6089,10 @@ def process(filename):
         try:
           js_data = eval(m.group(0))
         except AttributeError:
-          print 'Failed to find proper image output in: ' + output
+          print('Failed to find proper image output in: ' + output)
           raise
 
-        js_data = map(lambda x: x if x >= 0 else 256+x, js_data) # Our output may be signed, so unsign it
+        js_data = [x if x >= 0 else 256+x for x in js_data] # Our output may be signed, so unsign it
 
         # Get the correct output
         true_data = open(path_from_root('tests', 'openjpeg', 'syntensity_lobby_s.raw'), 'rb').read()
@@ -6137,22 +6137,22 @@ def process(filename):
         shutil.copyfile('src.c.o.js', 'release.js')
         try:
           os.environ['EMCC_DEBUG'] = '1'
-          print '2'
+          print('2')
           do_test()
           shutil.copyfile('src.c.o.js', 'debug1.js')
           os.environ['EMCC_DEBUG'] = '2'
-          print '3'
+          print('3')
           do_test()
           shutil.copyfile('src.c.o.js', 'debug2.js')
         finally:
           del os.environ['EMCC_DEBUG']
         for debug in [1,2]:
           self.assertIdentical(open('release.js').read().replace('\n\n', '\n').replace('\n\n', '\n'), open('debug%d.js' % debug).read().replace('\n\n', '\n').replace('\n\n', '\n')) # EMCC_DEBUG=1 mode must not generate different code!
-          print >> sys.stderr, 'debug check %d passed too' % debug
+          print('debug check %d passed too' % debug, file=sys.stderr)
 
         try_delete(CANONICAL_TEMP_DIR)
       else:
-        print >> sys.stderr, 'not doing debug check'
+        print('not doing debug check', file=sys.stderr)
 
     def test_python(self):
       if Settings.QUANTUM_SIZE == 1: return self.skip('TODO: make this work')
@@ -6198,9 +6198,9 @@ def process(filename):
           shortname = name.replace('.ll', '')
           if '' not in shortname: continue
           if '_ta2' in shortname and not Settings.USE_TYPED_ARRAYS == 2:
-            print self.skip('case "%s" only relevant for ta2' % shortname)
+            print(self.skip('case "%s" only relevant for ta2' % shortname))
             continue
-          print >> sys.stderr, "Testing case '%s'..." % shortname
+          print("Testing case '%s'..." % shortname, file=sys.stderr)
           output_file = path_from_root('tests', 'cases', shortname + '.txt')
           if Settings.QUANTUM_SIZE == 1:
             q1_output_file = path_from_root('tests', 'cases', shortname + '_q1.txt')
@@ -6230,10 +6230,10 @@ def process(filename):
     # Autodebug the code, after LLVM opts. Will only work once!
     def do_autodebug_post(self, filename):
       if not hasattr(self, 'post'):
-        print 'Asking for post re-call'
+        print('Asking for post re-call')
         self.post = True
         return True
-      print 'Autodebugging during post time'
+      print('Autodebugging during post time')
       delattr(self, 'post')
       output = Popen(['python', AUTODEBUGGER, filename+'.o.ll', filename+'.o.ll.ll'], stdout=PIPE, stderr=self.stderr_redirect).communicate()[0]
       assert 'Success.' in output, output
@@ -6740,7 +6740,7 @@ def process(filename):
 
       try:
         self.do_run(src, '*nothingatall*')
-      except Exception, e:
+      except Exception as e:
         # This test *should* fail, by throwing this exception
         assert 'Assertion failed: Load-store consistency assumption failure!' in str(e), str(e)
 
@@ -6757,7 +6757,7 @@ def process(filename):
 
       try:
         self.do_run(src, '*nothingatall*')
-      except Exception, e:
+      except Exception as e:
         # This test *should* fail, by throwing this exception
         assert 'Assertion failed: Load-store consistency assumption failure!' in str(e), str(e)
 
@@ -6807,7 +6807,7 @@ def process(filename):
 
       try:
         self.do_ll_run(all_name, '*nothingatall*')
-      except Exception, e:
+      except Exception as e:
         # This test *should* fail, by throwing this exception
         assert 'Assertion failed: Load-store consistency assumption failure!' in str(e), str(e)
 
@@ -6824,7 +6824,7 @@ def process(filename):
         Settings.SAFE_HEAP_LINES = lines
         try:
           self.do_ll_run(all_name, '*nothingatall*')
-        except Exception, e:
+        except Exception as e:
           # This test *should* fail, by throwing this exception
           assert 'Assertion failed: Load-store consistency assumption failure!' in str(e), str(e)
 
@@ -6846,7 +6846,7 @@ def process(filename):
       '''
       try:
         self.do_run(src, '*nothingatall*')
-      except Exception, e:
+      except Exception as e:
         # This test *should* fail, by throwing this exception
         assert 'Too many corrections' in str(e), str(e)
 
@@ -6878,7 +6878,7 @@ def process(filename):
   assert found_filename, 'Must have debug info with the filename'
 '''
         self.do_run(src, '*nothingatall*', post_build=post)
-      except Exception, e:
+      except Exception as e:
         # This test *should* fail
         assert 'Assertion failed' in str(e), str(e)
 
@@ -6948,7 +6948,7 @@ def process(filename):
       try:
         self.do_run(src, correct)
         raise Exception('UNEXPECTED-PASS')
-      except Exception, e:
+      except Exception as e:
         assert 'UNEXPECTED' not in str(e), str(e)
         assert 'Expected to find' in str(e), str(e)
 
@@ -6966,7 +6966,7 @@ def process(filename):
       try:
         self.do_run(src, correct)
         raise Exception('UNEXPECTED-PASS')
-      except Exception, e:
+      except Exception as e:
         assert 'UNEXPECTED' not in str(e), str(e)
         assert 'Expected to find' in str(e), str(e)
 
@@ -6979,7 +6979,7 @@ def process(filename):
       try:
         self.do_run(src, correct)
         raise Exception('UNEXPECTED-PASS')
-      except Exception, e:
+      except Exception as e:
         assert 'UNEXPECTED' not in str(e), str(e)
         assert 'Expected to find' in str(e), str(e)
 
@@ -7069,7 +7069,7 @@ def process(filename):
           assert re.search('^UnSign\|.*src.cpp:13 : 6 hits, %17 failures$', output, re.M), 'no indication of Sign corrections: ' + output
         return output
 
-      print >>sys.stderr, '1'
+      print('1', file=sys.stderr)
       self.do_run(src, '*186854335,63*\n', output_nicerizer=check)
 
       Settings.PGO = Settings.CHECK_OVERFLOWS = Settings.CORRECT_OVERFLOWS = Settings.CHECK_SIGNS = Settings.CORRECT_SIGNS = 0
@@ -7083,12 +7083,12 @@ def process(filename):
       Settings.CORRECT_OVERFLOWS = 2
       Settings.CORRECT_OVERFLOWS_LINES = pgo_data['overflows_lines']
 
-      print >>sys.stderr, '2'
+      print('2', file=sys.stderr)
       self.do_run(src, '*186854335,63*\n')
 
       # Sanity check: Without PGO, we will fail
 
-      print >>sys.stderr, '3'
+      print('3', file=sys.stderr)
       try:
         self.do_run(src, '*186854335,63*\n')
       except:
@@ -7588,10 +7588,10 @@ f.close()
                             '-G' 'Unix Makefiles', cmakelistsdir]
             ret = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()
             if ret[1] != None and len(ret[1].strip()) > 0:
-              print >> sys.stderr, ret[1] # If there were any errors, print them directly to console for diagnostics.
+              print(ret[1], file=sys.stderr) # If there were any errors, print them directly to console for diagnostics.
             if 'error' in ret[1].lower():
-              print >> sys.stderr, 'Failed command: ' + ' '.join(cmd)
-              print >> sys.stderr, 'Result:\n' + ret[1]
+              print('Failed command: ' + ' '.join(cmd), file=sys.stderr)
+              print('Result:\n' + ret[1], file=sys.stderr)
               raise Exception('cmake call failed!')
             assert os.path.exists(tempdirname + '/Makefile'), 'CMake call did not produce a Makefile!'
             
@@ -7599,10 +7599,10 @@ f.close()
             cmd = [make_command]
             ret = Popen(cmd, stdout=PIPE).communicate()
             if ret[1] != None and len(ret[1].strip()) > 0:
-              print >> sys.stderr, ret[1] # If there were any errors, print them directly to console for diagnostics.
+              print(ret[1], file=sys.stderr) # If there were any errors, print them directly to console for diagnostics.
             if 'error' in ret[0].lower() and not '0 error(s)' in ret[0].lower():
-              print >> sys.stderr, 'Failed command: ' + ' '.join(cmd)
-              print >> sys.stderr, 'Result:\n' + ret[0]
+              print('Failed command: ' + ' '.join(cmd), file=sys.stderr)
+              print('Result:\n' + ret[0], file=sys.stderr)
               raise Exception('make failed!')
             assert os.path.exists(tempdirname + '/' + cmake_outputs[i]), 'Building a cmake-generated Makefile failed to produce an output file %s!' % tempdirname + '/' + cmake_outputs[i]
             
@@ -8246,7 +8246,7 @@ f.close()
         (['--bind', '-O1'], False)
         # XXX TODO (['--bind', '-O2'], False)
       ]:
-        print args, fail
+        print(args, fail)
         try_delete(self.in_dir('a.out.js'))
         Popen(['python', EMCC, path_from_root('tests', 'embind', 'embind_test.cpp'), '--post-js', path_from_root('tests', 'embind', 'embind_test.js')] + args, stderr=PIPE if fail else None).communicate()
         assert os.path.exists(self.in_dir('a.out.js')) == (not fail)
@@ -8335,7 +8335,7 @@ fscanfed: 10 - hello
       try:
         assert output == LLVM_ROOT
       except:
-        print >> sys.stderr, 'Assertion failed: python %s LLVM_ROOT returned "%s" instead of expected "%s"!' % (EMCONFIG, output, LLVM_ROOT)
+        print('Assertion failed: python %s LLVM_ROOT returned "%s" instead of expected "%s"!' % (EMCONFIG, output, LLVM_ROOT), file=sys.stderr)
         raise
       invalid = 'Usage: em-config VAR_NAME'
       # Don't accept variables that do not exist
@@ -8437,16 +8437,16 @@ elif 'browser' in str(sys.argv):
   webbrowser.open_new = run_in_other_browser
   '''
 
-  print
-  print 'Running the browser tests. Make sure the browser allows popups from localhost.'
-  print
+  print()
+  print('Running the browser tests. Make sure the browser allows popups from localhost.')
+  print()
 
   # Run a server and a web page. When a test runs, we tell the server about it,
   # which tells the web page, which then opens a window with the test. Doing
   # it this way then allows the page to close() itself when done.
 
   def harness_server_func(q):
-    class TestServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    class TestServerHandler(http.server.BaseHTTPRequestHandler):
       def do_GET(s):
         s.send_response(200)
         s.send_header("Content-type", "text/html")
@@ -8459,11 +8459,11 @@ elif 'browser' in str(sys.argv):
             result = q.get()
           s.wfile.write(result)
         s.wfile.close()
-    httpd = BaseHTTPServer.HTTPServer(('localhost', 9999), TestServerHandler)
+    httpd = http.server.HTTPServer(('localhost', 9999), TestServerHandler)
     httpd.serve_forever() # test runner will kill us
 
   def server_func(dir, q):
-    class TestServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    class TestServerHandler(http.server.BaseHTTPRequestHandler):
       def do_GET(s):
         if 'report_' in s.path:
           q.put(s.path)
@@ -8480,7 +8480,7 @@ elif 'browser' in str(sys.argv):
             s.send_header("Content-type", "text/html")
             s.end_headers()
     os.chdir(dir)
-    httpd = BaseHTTPServer.HTTPServer(('localhost', 8888), TestServerHandler)
+    httpd = http.server.HTTPServer(('localhost', 8888), TestServerHandler)
     httpd.serve_forever() # test runner will kill us
 
   class browser(RunnerCore):
@@ -8491,7 +8491,7 @@ elif 'browser' in str(sys.argv):
       browser.harness_queue = multiprocessing.Queue()
       browser.harness_server = multiprocessing.Process(target=harness_server_func, args=(browser.harness_queue,))
       browser.harness_server.start()
-      print '[Browser harness server on process %d]' % browser.harness_server.pid
+      print('[Browser harness server on process %d]' % browser.harness_server.pid)
       webbrowser.open_new('http://localhost:9999/run_harness')
 
     def __del__(self):
@@ -8499,7 +8499,7 @@ elif 'browser' in str(sys.argv):
 
       browser.harness_server.terminate()
       delattr(browser, 'harness_server')
-      print '[Browser harness server terminated]'
+      print('[Browser harness server terminated]')
       # On Windows, shutil.rmtree() in tearDown() raises this exception if we do not wait a bit:
       # WindowsError: [Error 32] The process cannot access the file because it is being used by another process.
       time.sleep(0.1)
@@ -8525,11 +8525,11 @@ elif 'browser' in str(sys.argv):
           time.sleep(0.1) # see comment about Windows above
       else:
         webbrowser.open_new(os.path.abspath(html_file))
-        print 'A web browser window should have opened a page containing the results of a part of this test.'
-        print 'You need to manually look at the page to see that it works ok: ' + message
-        print '(sleeping for a bit to keep the directory alive for the web browser..)'
+        print('A web browser window should have opened a page containing the results of a part of this test.')
+        print('You need to manually look at the page to see that it works ok: ' + message)
+        print('(sleeping for a bit to keep the directory alive for the web browser..)')
         time.sleep(5)
-        print '(moving on..)'
+        print('(moving on..)')
 
     def with_report_result(self, code):
       return r'''
@@ -8829,7 +8829,7 @@ elif 'browser' in str(sys.argv):
     def test_preload_file(self):
       open(os.path.join(self.get_dir(), 'somefile.txt'), 'w').write('''load me right before running the code please''')
       def make_main(path):
-        print path
+        print(path)
         open(os.path.join(self.get_dir(), 'main.cpp'), 'w').write(self.with_report_result(r'''
           #include <stdio.h>
           #include <string.h>
@@ -8971,7 +8971,7 @@ elif 'browser' in str(sys.argv):
       for image, width in [(path_from_root('tests', 'screenshot2.png'), 300),
                            (path_from_root('tests', 'screenshot.jpg'), 600)]:
         self.clear()
-        print image
+        print(image)
 
         basename = os.path.basename(image)
         shutil.copyfile(image, os.path.join(self.get_dir(), basename))
@@ -9236,7 +9236,7 @@ elif 'browser' in str(sys.argv):
       checksum = zlib.adler32(data)
 
       def chunked_server(support_byte_ranges):
-        class ChunkedServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+        class ChunkedServerHandler(http.server.BaseHTTPRequestHandler):
           @staticmethod
           def sendheaders(s, extra=[], length=len(data)):
             s.send_response(200)
@@ -9266,7 +9266,7 @@ elif 'browser' in str(sys.argv):
               ChunkedServerHandler.sendheaders(s,[],length)
               s.wfile.write(data[start:end+1])
             s.wfile.close()
-        httpd = BaseHTTPServer.HTTPServer(('localhost', 11111), ChunkedServerHandler)
+        httpd = http.server.HTTPServer(('localhost', 11111), ChunkedServerHandler)
         for i in range(expectedConns+1):
           httpd.handle_request()
 
@@ -9316,7 +9316,7 @@ elif 'browser' in str(sys.argv):
       def book_path(*pathelems):
         return path_from_root('tests', 'glbook', *pathelems)
       for program in programs:
-        print program
+        print(program)
         basename = os.path.basename(program)
         args = []
         if basename == 'CH10_MultiTexture.bc':
@@ -9523,7 +9523,7 @@ elif 'browser' in str(sys.argv):
         try:
             # NOTE: may just kill the process in Windows
             os.kill(pid, 0)
-        except OSError, e:
+        except OSError as e:
             return e.errno == errno.EPERM
         else:
             return True
@@ -9531,12 +9531,12 @@ elif 'browser' in str(sys.argv):
         for pid in pids:
           if not pid_exists(pid):
             break
-          print '[killing %d]' % pid
+          print('[killing %d]' % pid)
           try:
             os.kill(pid, sig)
-            print '[kill succeeded]'
+            print('[kill succeeded]')
           except:
-            print '[kill fail]'
+            print('[kill fail]')
       # ask nicely (to try and catch the children)
       kill_pids(browser.pids_to_clean, signal.SIGTERM)
       time.sleep(1)
@@ -9561,7 +9561,7 @@ elif 'browser' in str(sys.argv):
             ssock.listen(2)
             while True:
               csock, addr = ssock.accept()
-              print "Connection from %s" % repr(addr)
+              print("Connection from %s" % repr(addr))
               csock.send("te\x01\xff\x79st\x02")
 
           server_func = self.server_func or server_func
@@ -9577,16 +9577,16 @@ elif 'browser' in str(sys.argv):
                 browser.pids_to_clean.append(spid)
               break
             time.sleep(0.1)
-          print '[Socket server on processes %s]' % str(browser.pids_to_clean[-2:])
+          print('[Socket server on processes %s]' % str(browser.pids_to_clean[-2:]))
 
         def websockify_func(wsp): wsp.start_server()
 
-        print >> sys.stderr, 'running websockify on %d, forward to tcp %d' % (self.port+1, self.port)
+        print('running websockify on %d, forward to tcp %d' % (self.port+1, self.port), file=sys.stderr)
         wsp = websockify.WebSocketProxy(verbose=True, listen_port=self.port+1, target_host="127.0.0.1", target_port=self.port, run_once=True)
         self.websockify = multiprocessing.Process(target=websockify_func, args=(wsp,))
         self.websockify.start()
         browser.pids_to_clean.append(self.websockify.pid)
-        print '[Websockify on processes %s]' % str(browser.pids_to_clean[-2:])
+        print('[Websockify on processes %s]' % str(browser.pids_to_clean[-2:]))
 
       def __exit__(self, *args, **kwargs):
         if self.websockify.is_alive():
@@ -9604,7 +9604,7 @@ elif 'browser' in str(sys.argv):
 
     def make_relay_server(self, port1, port2):
       def relay_server(q):
-        print >> sys.stderr, 'creating relay server on ports %d,%d' % (port1, port2)
+        print('creating relay server on ports %d,%d' % (port1, port2), file=sys.stderr)
         proc = Popen(['python', path_from_root('tests', 'socket_relay.py'), str(port1), str(port2)])
         q.put(proc.pid)
         proc.communicate()
@@ -9681,9 +9681,9 @@ elif 'benchmark' in str(sys.argv):
   finally:
     os.chdir(d)
   fingerprint.append('llvm: ' + LLVM_ROOT)
-  print 'Running Emscripten benchmarks... [ %s ]' % ' | '.join(fingerprint)
+  print('Running Emscripten benchmarks... [ %s ]' % ' | '.join(fingerprint))
 
-  sys.argv = filter(lambda x: x != 'benchmark', sys.argv)
+  sys.argv = [x for x in sys.argv if x != 'benchmark']
 
   assert(os.path.exists(CLOSURE_COMPILER))
 
@@ -9702,8 +9702,8 @@ elif 'benchmark' in str(sys.argv):
     if not arg.startswith('benchmark.test_'):
       JS_ENGINE = eval(arg)
       sys.argv[i] = None
-  sys.argv = filter(lambda arg: arg is not None, sys.argv)
-  print 'Benchmarking JS engine:', JS_ENGINE
+  sys.argv = [arg for arg in sys.argv if arg is not None]
+  print('Benchmarking JS engine:', JS_ENGINE)
 
   Building.COMPILER_TEST_OPTS = []
 
@@ -9711,13 +9711,13 @@ elif 'benchmark' in str(sys.argv):
   TOTAL_TESTS = 9
 
   tests_done = 0
-  total_times = map(lambda x: 0., range(TOTAL_TESTS))
-  total_native_times = map(lambda x: 0., range(TOTAL_TESTS))
+  total_times = [0. for x in range(TOTAL_TESTS)]
+  total_native_times = [0. for x in range(TOTAL_TESTS)]
 
   class benchmark(RunnerCore):
     def print_stats(self, times, native_times, last=False):
       mean = sum(times)/len(times)
-      squared_times = map(lambda x: x*x, times)
+      squared_times = [x*x for x in times]
       mean_of_squared = sum(squared_times)/len(times)
       std = math.sqrt(mean_of_squared - mean*mean)
       sorted_times = times[:]
@@ -9725,7 +9725,7 @@ elif 'benchmark' in str(sys.argv):
       median = sum(sorted_times[len(sorted_times)/2 - 1:len(sorted_times)/2 + 1])/2
 
       mean_native = sum(native_times)/len(native_times)
-      squared_native_times = map(lambda x: x*x, native_times)
+      squared_native_times = [x*x for x in native_times]
       mean_of_squared_native = sum(squared_native_times)/len(native_times)
       std_native = math.sqrt(mean_of_squared_native - mean_native*mean_native)
       sorted_native_times = native_times[:]
@@ -9739,13 +9739,13 @@ elif 'benchmark' in str(sys.argv):
         for i in range(len(times)):
           norm += times[i]/native_times[i]
         norm /= len(times)
-        print
-        print '  JavaScript: %.3f    Native: %.3f   Ratio:  %.3f  Normalized ratio: %.3f' % (mean, mean_native, final, norm)
+        print()
+        print('  JavaScript: %.3f    Native: %.3f   Ratio:  %.3f  Normalized ratio: %.3f' % (mean, mean_native, final, norm))
         return
 
-      print
-      print '   JavaScript: mean: %.3f (+-%.3f) secs  median: %.3f  range: %.3f-%.3f  (noise: %3.3f%%)  (%d runs)' % (mean, std, median, min(times), max(times), 100*std/mean, TEST_REPS)
-      print '   Native    : mean: %.3f (+-%.3f) secs  median: %.3f  range: %.3f-%.3f  (noise: %3.3f%%)  JS is %.2f X slower' % (mean_native, std_native, median_native, min(native_times), max(native_times), 100*std_native/mean_native, final)
+      print()
+      print('   JavaScript: mean: %.3f (+-%.3f) secs  median: %.3f  range: %.3f-%.3f  (noise: %3.3f%%)  (%d runs)' % (mean, std, median, min(times), max(times), 100*std/mean, TEST_REPS))
+      print('   Native    : mean: %.3f (+-%.3f) secs  median: %.3f  range: %.3f-%.3f  (noise: %3.3f%%)  JS is %.2f X slower' % (mean_native, std_native, median_native, min(native_times), max(native_times), 100*std_native/mean_native, final))
 
     def do_benchmark(self, name, src, args=[], expected_output='FAIL', emcc_args=[]):
       dirname = self.get_dir()
@@ -9790,7 +9790,7 @@ elif 'benchmark' in str(sys.argv):
 
       tests_done += 1
       if tests_done == TOTAL_TESTS:
-        print 'Total stats:',
+        print('Total stats:', end=' ')
         self.print_stats(total_times, total_native_times, last=True)
 
     def test_primes(self):
@@ -9977,12 +9977,12 @@ elif 'sanity' in str(sys.argv):
 
   # Run some sanity checks on the test runner and emcc.
 
-  sys.argv = filter(lambda x: x != 'sanity', sys.argv)
+  sys.argv = [x for x in sys.argv if x != 'sanity']
 
-  print
-  print 'Running sanity checks.'
-  print 'WARNING: This will modify %s, and in theory can break it although it should be restored properly. A backup will be saved in %s_backup' % (EM_CONFIG, EM_CONFIG)
-  print
+  print()
+  print('Running sanity checks.')
+  print('WARNING: This will modify %s, and in theory can break it although it should be restored properly. A backup will be saved in %s_backup' % (EM_CONFIG, EM_CONFIG))
+  print()
 
   assert os.path.exists(CONFIG_FILE), 'To run these tests, we need a (working!) %s file to already exist' % EM_CONFIG
 
@@ -10300,7 +10300,7 @@ fi
         # Building a file that *does* need dlmalloc *should* trigger cache generation, but only the first time
         for filename, libname in [('hello_malloc.cpp', 'dlmalloc'), ('hello_libcxx.cpp', 'libcxx')]:
           for i in range(3):
-            print filename, libname, i
+            print(filename, libname, i)
             self.clear()
             dcebc_name = dcebc_name1 if i == 0 else dcebc_name2
             ll_name = ll_name1 if i == 0 else ll_name2
@@ -10319,14 +10319,14 @@ fi
             assert os.path.exists(EMCC_CACHE)
             assert os.path.exists(os.path.join(EMCC_CACHE, libname + '.bc'))
             if libname == 'libcxx':
-              print os.stat(os.path.join(EMCC_CACHE, libname + '.bc')).st_size, os.stat(basebc_name).st_size, os.stat(dcebc_name).st_size
+              print(os.stat(os.path.join(EMCC_CACHE, libname + '.bc')).st_size, os.stat(basebc_name).st_size, os.stat(dcebc_name).st_size)
               assert os.stat(os.path.join(EMCC_CACHE, libname + '.bc')).st_size > 2000000, 'libc++ is big'
               assert os.stat(basebc_name).st_size > 2000000, 'libc++ is indeed big'
               assert os.stat(dcebc_name).st_size < 1500000, 'Dead code elimination must remove most of libc++'
             # should only have metadata in -O0, not 1 and 2
             ll = open(ll_name).read()
             if (ll.count('\n!') < 10) == (i == 0): # a few lines are left even in -O1 and -O2
-              print i, 'll metadata should be removed in -O1 and O2 by default', ll[-300:]
+              print(i, 'll metadata should be removed in -O1 and O2 by default', ll[-300:])
               assert False
       finally:
         if emcc_debug:
@@ -10347,7 +10347,7 @@ fi
         try_delete(RELOOPER)
 
         for i in range(4):
-          print phase, i
+          print(phase, i)
           opt = min(i, 2)
           try_delete('a.out.js')
           output = Popen(['python', EMCC, path_from_root('tests', 'hello_world_loop.cpp'), '-O' + str(opt), '--closure', '0'],
@@ -10369,11 +10369,11 @@ if __name__ == '__main__':
   check_sanity(force=True)
 
   total_engines = len(JS_ENGINES)
-  JS_ENGINES = filter(check_engine, JS_ENGINES)
+  JS_ENGINES = list(filter(check_engine, JS_ENGINES))
   if len(JS_ENGINES) == 0:
-    print 'WARNING: None of the JS engines in JS_ENGINES appears to work.'
+    print('WARNING: None of the JS engines in JS_ENGINES appears to work.')
   elif len(JS_ENGINES) < total_engines:
-    print 'WARNING: Not all the JS engines in JS_ENGINES appears to work, ignoring those.'
+    print('WARNING: Not all the JS engines in JS_ENGINES appears to work, ignoring those.')
 
   # Skip requested tests
 
@@ -10381,10 +10381,10 @@ if __name__ == '__main__':
     arg = sys.argv[i]
     if arg.startswith('skip:'):
       which = arg.split('skip:')[1]
-      print >> sys.stderr, 'will skip "%s"' % which
+      print('will skip "%s"' % which, file=sys.stderr)
       exec(which + ' = RunnerCore.skipme')
       sys.argv[i] = ''
-  sys.argv = filter(lambda arg: arg, sys.argv)
+  sys.argv = [arg for arg in sys.argv if arg]
 
   # Go
 

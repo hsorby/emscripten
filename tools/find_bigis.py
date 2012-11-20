@@ -14,5 +14,5 @@ for iss in set_iss:
   if size > 64:
     bigs.append(size)
 bigs.sort()
-print bigs
+print(bigs)
 

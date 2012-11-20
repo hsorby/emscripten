@@ -91,5 +91,5 @@ def finalize(line):
   except:
     return line
 
-print 'var ModuleNames = ' + '\n'.join(map(finalize, json.dumps(space, sort_keys=True, indent=2).split('\n')))
+print('var ModuleNames = ' + '\n'.join(map(finalize, json.dumps(space, sort_keys=True, indent=2).split('\n'))))
 

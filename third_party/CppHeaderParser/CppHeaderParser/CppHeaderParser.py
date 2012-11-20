@@ -183,7 +183,7 @@ def t_NEWLINE(t):
     t.lexer.lineno += len(t.value)
 
 def t_error(v):
-    print( "Lex error: ", v )
+    print(( "Lex error: ", v ))
 
 lex.lex()
 debug = 0
@@ -226,7 +226,7 @@ class _CppClass(dict):
 	def _parser_helper( self, stack ):
 		prev = None
 		prev2 = None
-		print('stack IN', ' '.join(stack))
+		print(('stack IN', ' '.join(stack)))
 		for i, tok in enumerate(stack):	# can not trust the first single ":" or last
 			if prev and prev2 and tok == ':' and prev != ':' and prev2 != ':':
 				break
@@ -238,9 +238,9 @@ class _CppClass(dict):
 		b = stack[ i+1 : ]
 		while a[-1] == ':': a.pop()
 
-		print( 'HEAD', a )
+		print(( 'HEAD', a ))
 		print('______________')
-		print( 'TAIL', b )
+		print(( 'TAIL', b ))
 
 		if ''.join(stack).replace('::','_').count(':') >= 2:
 			if stack.count('class') == 1:
@@ -398,7 +398,7 @@ class CppClass( _CppClass ):
         self._public_typedefs = {}
         self._public_forward_declares = []
 
-        if (debug): print( "Class:   ",  nameStack )
+        if (debug): print(( "Class:   ",  nameStack ))
         if (len(nameStack) < 2):
             print( "Error detecting class" )
             return
@@ -434,7 +434,7 @@ class CppClass( _CppClass ):
 
     def show_all(self):
         self.show()
-        for key in self.keys(): print( '	%s : %s' %(key,self[key]) )
+        for key in list(self.keys()): print(( '	%s : %s' %(key,self[key]) ))
  
     def show(self):
         """Convert class to a string"""
@@ -444,10 +444,10 @@ class CppClass( _CppClass ):
         if self['abstract']: rtn += '    (abstract)\n'
         else: rtn += '\n'
 
-        if 'doxygen' in self.keys(): rtn += self["doxygen"] + '\n'
-        if 'parent' in self.keys() and self['parent']: rtn += 'parent class:' + self['parent'] + '\n'
+        if 'doxygen' in list(self.keys()): rtn += self["doxygen"] + '\n'
+        if 'parent' in list(self.keys()) and self['parent']: rtn += 'parent class:' + self['parent'] + '\n'
 
-        if "inherits" in self.keys():
+        if "inherits" in list(self.keys()):
             rtn += "  Inherits: "
             for inheritClass in self["inherits"]:
                 rtn += "%s %s, "%(inheritClass["access"], inheritClass["class"])
@@ -555,7 +555,7 @@ class CppMethod( _CppMethod ):
         return '\n\t\t  '.join( r )
 
     def __init__(self, nameStack, curClass=None, methinfo={} ):
-        if (debug): print( "Method:   ",  nameStack )
+        if (debug): print(( "Method:   ",  nameStack ))
         global doxygenCommentCache
 
         if not curClass: self['function'] = True
@@ -574,7 +574,7 @@ class CppMethod( _CppMethod ):
         #See if there is a doxygen comment for the variable
         doxyVarDesc = {}
         #TODO: Put this into a class
-        if self.has_key("doxygen"):
+        if "doxygen" in self:
             doxyLines = self["doxygen"].split("\n")
             lastParamDesc = ""
             for doxyLine in doxyLines:
@@ -603,11 +603,11 @@ class CppMethod( _CppMethod ):
         while (len(paramsStack)):
             if (',' in paramsStack):
                 param = CppVariable(paramsStack[0:paramsStack.index(',')],  doxyVarDesc=doxyVarDesc)
-                if len(param.keys()): params.append(param)
+                if len(list(param.keys())): params.append(param)
                 paramsStack = paramsStack[paramsStack.index(',') + 1:]
             else:
                 param = CppVariable(paramsStack,  doxyVarDesc=doxyVarDesc)
-                if len(param.keys()): params.append(param)
+                if len(list(param.keys())): params.append(param)
                 break
 
         self["parameters"] = params
@@ -616,7 +616,7 @@ class CppMethod( _CppMethod ):
 
 class _CppVariable(dict):
     def _name_stack_helper( self, stack, fullStack ):
-        print('V'*80); print( stack ); print(fullStack); print('_'*80)
+        print(('V'*80)); print( stack ); print(fullStack); print(('_'*80))
         stack = list(stack)
         if stack[-1].isdigit() and '=' not in stack:        # TODO refactor me - was: '=' not in stack or 
             # check for array[n] and deal with funny array syntax: "int myvar:99"
@@ -681,7 +681,7 @@ class CppVariable( _CppVariable ):
             self["doxygen"] = doxygenCommentCache
             doxygenCommentCache = ""
 
-        if (debug): print( "Variable: ",  nameStack )
+        if (debug): print(( "Variable: ",  nameStack ))
 
         if (len(nameStack) < 2):
             if len(nameStack) == 1: self['type'] = nameStack[0]; self['name'] = ''
@@ -718,7 +718,7 @@ class CppVariable( _CppVariable ):
 
         if not a:
             self['invalid'] = True		# void someinvalidfunction( int x, y=INVALID );
-            print('WARN - bad variable', self )
+            print(('WARN - bad variable', self ))
 
         else:
             if a[0] == 'class':
@@ -809,7 +809,7 @@ class CppEnum(_CppEnum):
             elif len(tmpStack) >= 3 and tmpStack[1] == "=":
                 d["name"] = tmpStack[0]; d["value"] = " ".join(tmpStack[2:])
             elif len(tmpStack) == 2 and tmpStack[1] == "=":
-                if (debug): print( "WARN-enum: parser missed value for %s"%tmpStack[0] )
+                if (debug): print(( "WARN-enum: parser missed value for %s"%tmpStack[0] ))
                 d["name"] = tmpStack[0]
 
             if d: valueList.append( d )
@@ -818,7 +818,7 @@ class CppEnum(_CppEnum):
             self['type'] = self.resolve_enum_values( valueList )    # returns int for standard enum
             self["values"] = valueList
         else:
-            print( 'WARN-enum: empty enum', nameStack )
+            print(( 'WARN-enum: empty enum', nameStack ))
             return
         #Figure out if it has a name
         preBraceStack = nameStack[:nameStack.index("{")]
@@ -827,7 +827,7 @@ class CppEnum(_CppEnum):
             self["name"] = preBraceStack[1]           
         elif len(postBraceStack) and "typedef" in nameStack:
                 self["name"] = " ".join(postBraceStack)
-        else: print( 'WARN-enum: nameless enum', nameStack )
+        else: print(( 'WARN-enum: nameless enum', nameStack ))
         #See if there are instances of this
         if "typedef" not in nameStack and len(postBraceStack):
             self["instances"] = []
@@ -860,8 +860,8 @@ def prune_arrays( stack ):
 
 
 def is_method_namestack(stack):
-    clean = prune_templates( stack ); print('CLEAN TEMPLATES',clean)
-    clean = prune_arrays( clean ); print('CLEAN ARRAYS',clean)
+    clean = prune_templates( stack ); print(('CLEAN TEMPLATES',clean))
+    clean = prune_arrays( clean ); print(('CLEAN ARRAYS',clean))
 
     r = False
     if 'operator' in stack: r = True    # allow all operators
@@ -895,7 +895,7 @@ def is_method_namestack(stack):
         elif x.endswith(',false);'): r = False
         elif x.endswith(',0xFF);'): r = False
     else: r = False
-    print( 'is method namestack', r, stack ); print('_'*80)
+    print(( 'is method namestack', r, stack )); print(('_'*80))
     return r
 
 
@@ -1230,7 +1230,7 @@ class Resolver(object):
 
 
                         elif var['parent']:
-                            print( 'WARN unresolved', _tag)
+                            print(( 'WARN unresolved', _tag))
                             var['ctypes_type'] = 'ctypes.c_void_p'
                             var['unresolved'] = True
 
@@ -1323,13 +1323,13 @@ class Resolver(object):
                             var['unresolved'] = True    # TODO, how to deal with templates?
 
                         elif tag.startswith('_'):    # assume starting with underscore is not important for wrapping
-                            print( 'WARN unresolved', _tag)
+                            print(( 'WARN unresolved', _tag))
                             var['ctypes_type'] = 'ctypes.c_void_p'
                             var['unresolved'] = True
 
                         else:
                             trace_print( 'WARN: unknown type', var )
-                            if not 'property_of_class' in var or not 'property_of_struct' in var: print('TODO - fixme', var['name'], var['type'])
+                            if not 'property_of_class' in var or not 'property_of_struct' in var: print(('TODO - fixme', var['name'], var['type']))
                             var['unresolved'] = True
 
 
@@ -1555,7 +1555,7 @@ class _CppHeader( Resolver ):
                 if tdef['template'] not in self.template_classes: continue		# TODO fix me
 
                 cls = self.template_classes[ tdef['template'] ]
-                for info in T.values():
+                for info in list(T.values()):
                     if ',' in info['typename']: continue		# TODO - complex templates
 
                     info['fundamental'] = is_fundamental( info['typename'] )
@@ -1593,14 +1593,14 @@ class _CppHeader( Resolver ):
                             info['struct'] = True
                             info['ctypes_type'] = 'ctypes.c_void_p'
 
-                        else: print('TODO template', tn)
+                        else: print(('TODO template', tn))
 
 
         ## finalize variables ##
         self.finalize_vars()
 
         # finalize method returns types
-        for cls in self.classes.values():
+        for cls in list(self.classes.values()):
             for meth in cls.get_all_methods():
                 if meth['pure_virtual']: cls['abstract'] = True
                 self.finalize_return( meth, cls )
@@ -1610,7 +1610,7 @@ class _CppHeader( Resolver ):
 
 
         ## find pure virtuals and mark abstract classes ##
-        for cls in self.classes.values():
+        for cls in list(self.classes.values()):
             methnames = cls.get_all_method_names()
             pvm = cls.get_all_pure_virtual_methods()
 
@@ -1625,9 +1625,9 @@ class _CppHeader( Resolver ):
                         trace_print( '\t\tmeth', meth['name'], 'pure virtual', meth['pure_virtual'] )
                         if meth['pure_virtual'] and meth['name'] not in methnames: cls['abstract'] = True; break
 
-        print self.typedefs.keys()
-        print '-------------'
-        for k in self.template_typedefs.keys(): print k
+        print(list(self.typedefs.keys()))
+        print('-------------')
+        for k in list(self.template_typedefs.keys()): print(k)
         #assert 'irr::core::dimension2d<u32>' in self.typedefs
         #assert 0
 
@@ -1756,7 +1756,7 @@ class _CppHeader( Resolver ):
         if '{' in stack:
             info['defined'] = True
             self._method_body = self.braceDepth
-            print( '----------NEW METHOD WITH BODY---------', self.braceDepth )
+            print(( '----------NEW METHOD WITH BODY---------', self.braceDepth ))
         elif stack[-1] == ';':
             info['defined'] = False
             self._method_body = None    # this is force cleared in several other places
@@ -1790,7 +1790,7 @@ class _CppHeader( Resolver ):
             name = r[-1]
             a = r[ : -1 ]    # strip name
 
-        if name is None: print('HEAD', header); assert 0 #return None
+        if name is None: print(('HEAD', header)); assert 0 #return None
 
         while a and a[0] == '}':    # strip - can have multiple } }
             a = a[1:]    # july3rd
@@ -1860,7 +1860,7 @@ class _CppHeader( Resolver ):
             if info[ 'class' ] and info['class'] in self.classes:     # case where methods are defined outside of class
                 klass = self.classes[ info['class'] ]
                 if not info['name'] in klass.get_all_method_names():    # do not overwrite header defined method
-                    print('External Method:', info['name'])
+                    print(('External Method:', info['name']))
                     newMethod = CppMethod(self.nameStack, info['name'], info)
                     klass[ 'methods' ][ 'public' ].append( newMethod )    # it could be private, how do we know this.
                     newMethod['parent'] = klass
@@ -1870,7 +1870,7 @@ class _CppHeader( Resolver ):
             elif '::' in info['name']: print( info ); assert 0
 
             elif self.curStruct:	# struct is a class in c++
-                print( 'Struct Method:', info )
+                print(( 'Struct Method:', info ))
                 newMethod = CppMethod(self.nameStack, self.curStruct, info)
                 self.curStruct['methods'].append( newMethod )
 
@@ -1885,7 +1885,7 @@ class _CppHeader( Resolver ):
 
 
             else:
-                print( 'free function:', self.nameStack )
+                print(( 'free function:', self.nameStack ))
                 if 'operator' in info and info['operator']:
                     trace_print( 'skipping external method def with operator', info )
                 else:
@@ -1965,12 +1965,12 @@ class _CppHeader( Resolver ):
     def evaluate_class_stack(self):
         """Create a Class out of the name stack (but not its parts)"""
         parent = self.curClass
-        print('NEWCLASS', ' '.join(self.nameStack))
+        print(('NEWCLASS', ' '.join(self.nameStack)))
 
         if self.braceDepth > len( self.nameSpaces) and (parent or self.curStruct):
             print( 'HIT NESTED SUBCLASS' )
         elif self.braceDepth-1 != len(self.nameSpaces):
-            print( 'ERROR: WRONG BRACE DEPTH', self.braceDepth, self.nameSpaces )
+            print(( 'ERROR: WRONG BRACE DEPTH', self.braceDepth, self.nameSpaces ))
             assert 0
 
         self._method_body = None	# force clear
@@ -1982,10 +1982,10 @@ class _CppHeader( Resolver ):
 
         newClass = CppClass(self.nameStack)
         if 'name' not in newClass or not newClass['name']: assert 0
-        print( 'CLASS OK', newClass['name'] )
+        print(( 'CLASS OK', newClass['name'] ))
         if newClass['name'] in 'RenderQueueInvocationIterator RenderQueueInvocationList'.split(): assert 0
 
-        if '>' in newClass['name']: print('WARN: strange template class', newClass['name'])
+        if '>' in newClass['name']: print(('WARN: strange template class', newClass['name']))
 
         self.classes_order.append( newClass )    # good idea to save ordering
         self.stack = []        # fixes if class declared with ';' in closing brace
@@ -2023,7 +2023,7 @@ class _CppHeader( Resolver ):
             self._classes_brace_level[ key ] = self.braceDepth
 
         if key in self.classes:
-            print('WARN - name collision', key)
+            print(('WARN - name collision', key))
 
         self.classes[ key ] = newClass
         if 'template_typename' in newClass:
@@ -2052,13 +2052,13 @@ class CppHeader( _CppHeader ):
     IGNORE_NAMES = '__extension__'.split()
     
     def show(self):
-        for className in self.classes.keys(): self.classes[className].show()
+        for className in list(self.classes.keys()): self.classes[className].show()
 
     
     def evaluate_enum_stack(self):
         """Create an Enum out of the name stack"""
         newEnum = CppEnum(self.nameStack)
-        if len(newEnum.keys()):
+        if len(list(newEnum.keys())):
             if len(self.curClass):
                 newEnum["namespace"] = self.cur_namespace(False)
                 klass = self.classes[self.curClass]
@@ -2072,9 +2072,9 @@ class CppHeader( _CppHeader ):
                 if 'name' in newEnum and newEnum['name']: self.global_enums[ newEnum['name'] ] = newEnum
 
             #This enum has instances, turn them into properties
-            if newEnum.has_key("instances"):
+            if "instances" in newEnum:
                 instanceType = "enum"
-                if newEnum.has_key("name"):
+                if "name" in newEnum:
                     instanceType = newEnum["name"]
                 for instance in newEnum["instances"]:
                     self.nameStack = [instanceType,  instance]
@@ -2109,7 +2109,7 @@ class CppHeader( _CppHeader ):
         self.curClass = ""
         
         global enumMaintianValueFormat
-        if kwargs.has_key("enumMaintianValueFormat"):
+        if "enumMaintianValueFormat" in kwargs:
             enumMaintianValueFormat = kwargs["enumMaintianValueFormat"]
         else:
             enumMaintianValueFormat = False
@@ -2184,10 +2184,10 @@ class CppHeader( _CppHeader ):
                         print('---------- END OF EXTERN -----------')
                         self.braceDepth = 0
 
-                    if self.curClass and debug: print( 'CURBD', self._classes_brace_level[ self.curClass ] )
+                    if self.curClass and debug: print(( 'CURBD', self._classes_brace_level[ self.curClass ] ))
 
                     if (self.braceDepth == 0) or (self.curClass and self._classes_brace_level[self.curClass] > self.braceDepth):
-                        if self.curClass: print( '------------END OF CLASS DEF-------------', 'braceDepth:', self.braceDepth )
+                        if self.curClass: print(( '------------END OF CLASS DEF-------------', 'braceDepth:', self.braceDepth ))
 
                         if self._current_access: self._current_access.pop()
 
@@ -2240,11 +2240,11 @@ class CppHeader( _CppHeader ):
                     if self.nameStack and self.nameStack[-1] in supportedAccessSpecifier:
                         if self.curClass or self.curStruct:
                             cas = self.nameStack[-1]
-                            self.curAccessSpecifier = cas; print('CURACCESS-set', cas)
+                            self.curAccessSpecifier = cas; print(('CURACCESS-set', cas))
                             if self.curClass:
                                 if self._current_access: self._current_access[-1] = cas
                                 else: self._current_access.append( cas )
-                        else: print('warning - "public ::namespace"', ' '.join(self.nameStack))
+                        else: print(('warning - "public ::namespace"', ' '.join(self.nameStack)))
 
                         self.stack = []; self.nameStack = []	# need to clear nameStack to so that nested structs can be found
                     else:
@@ -2265,19 +2265,19 @@ class CppHeader( _CppHeader ):
     def evaluate_stack(self, token=None):
         """Evaluates the current name stack"""
         global doxygenCommentCache
-        print( "Evaluating stack %s\nBraceDepth: %s" %(self.nameStack,self.braceDepth))
-        print( "Evaluating stack %s\nBraceDepth: %s" %(self.stack,self.braceDepth))
+        print(( "Evaluating stack %s\nBraceDepth: %s" %(self.nameStack,self.braceDepth)))
+        print(( "Evaluating stack %s\nBraceDepth: %s" %(self.stack,self.braceDepth)))
         if (len(self.curClass)):
-            if (debug): print( "%s (%s) "%(self.curClass, self.curAccessSpecifier))
+            if (debug): print(( "%s (%s) "%(self.curClass, self.curAccessSpecifier)))
 
         #if 'typedef' in self.nameStack: self.evaluate_typedef()        # allows nested typedefs, probably a bad idea
         if not self.curClass and 'typedef' in self.nameStack:
-            print('HIT TYPEDEF', self.stack)
+            print(('HIT TYPEDEF', self.stack))
             if token == 'SEMI_COLON' and ('{' not in self.stack or '}' in self.stack): self.evaluate_typedef()
             else: return
 
         elif (len(self.nameStack) == 0):
-            if (debug): print( "line ",lineno() )
+            if (debug): print(( "line ",lineno() ))
             if (debug): print( "(Empty Stack)" )
             return
         elif (self.nameStack[0] == "namespace"):
@@ -2286,7 +2286,7 @@ class CppHeader( _CppHeader ):
         elif len(self.nameStack) >= 2 and self.nameStack[0] == 'using' and self.nameStack[1] == 'namespace': pass    # TODO
 
         elif is_enum_namestack(self.nameStack):
-            if (debug): print( "line ",lineno() )
+            if (debug): print(( "line ",lineno() ))
             self.evaluate_enum_stack()
 
         elif self._method_body and self.braceDepth >= self._method_body:
@@ -2320,22 +2320,22 @@ class CppHeader( _CppHeader ):
 
 
         elif not self.curClass:
-            if (debug): print( "line ",lineno() )
+            if (debug): print(( "line ",lineno() ))
             if is_enum_namestack(self.nameStack): self.evaluate_enum_stack()
             elif self.curStruct and self.stack[-1] == ';': self.evaluate_property_stack()    # this catches fields of global structs
             self.nameStack = []
             doxygenCommentCache = ""
             return
         elif (self.braceDepth < 1):
-            if (debug): print( "line ",lineno() )
+            if (debug): print(( "line ",lineno() ))
             #Ignore global stuff for now
-            if (debug): print( "Global stuff: ",  self.nameStack )
+            if (debug): print(( "Global stuff: ",  self.nameStack ))
             self.nameStack = []
             self._method_body = None
             doxygenCommentCache = ""
             return
         elif (self.braceDepth > len(self.nameSpaces) + 1):
-            if (debug): print( "line ",lineno() )
+            if (debug): print(( "line ",lineno() ))
             self.nameStack = []
             doxygenCommentCache = ""
             return

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import with_statement
+
 
 import sys
 import os
@@ -83,6 +83,6 @@ with open('ccproxy.log', 'a') as f:
     f.write('** Calling %s %s\n\n' % (call, ' '.join(newargs)))
     f.flush()
 
-print "Running:", call, newargs
+print("Running:", call, newargs)
 
 subprocess.call([call] + newargs)

@@ -10,13 +10,14 @@ headers, for the libc implementation in JS).
 '''
 
 import os, sys, json, optparse, subprocess, re, time, multiprocessing
+from functools import reduce
 
 if not os.environ.get('EMSCRIPTEN_SUPPRESS_USAGE_WARNING'):
-  print >> sys.stderr, '''
+  print('''
 ==============================================================
 WARNING: You should normally never use this! Use emcc instead.
 ==============================================================
-  '''
+  ''', file=sys.stderr)
 
 from tools import shared
 
@@ -71,7 +72,7 @@ def emscript(infile, settings, outfile, libraries=[]):
   #   2 aka 'funcs': Process functions. We can parallelize this, working on each function independently.
   #   3 aka 'post' : Process globals, generate postamble and finishing touches.
 
-  if DEBUG: print >> sys.stderr, 'emscript: ll=>js'
+  if DEBUG: print('emscript: ll=>js', file=sys.stderr)
 
   # Pre-scan ll and alter settings as necessary
   if DEBUG: t = time.time()
@@ -79,7 +80,7 @@ def emscript(infile, settings, outfile, libraries=[]):
   scan(ll, settings)
   total_ll_size = len(ll)
   ll = None # allow collection
-  if DEBUG: print >> sys.stderr, '  emscript: scan took %s seconds' % (time.time() - t)
+  if DEBUG: print('  emscript: scan took %s seconds' % (time.time() - t), file=sys.stderr)
 
   # Split input into the relevant parts for each phase
   pre = []
@@ -109,8 +110,8 @@ def emscript(infile, settings, outfile, libraries=[]):
         pre.append(line) # pre needs it so we know about globals in pre and funcs. So emit globals there
   ll_lines = None
   meta = ''.join(meta)
-  if DEBUG and len(meta) > 1024*1024: print >> sys.stderr, 'emscript warning: large amounts of metadata, will slow things down'
-  if DEBUG: print >> sys.stderr, '  emscript: split took %s seconds' % (time.time() - t)
+  if DEBUG and len(meta) > 1024*1024: print('emscript warning: large amounts of metadata, will slow things down', file=sys.stderr)
+  if DEBUG: print('  emscript: split took %s seconds' % (time.time() - t), file=sys.stderr)
 
   #if DEBUG:
   #  print >> sys.stderr, '========= pre ================\n'
@@ -134,7 +135,7 @@ def emscript(infile, settings, outfile, libraries=[]):
   pre, forwarded_data = out.split('//FORWARDED_DATA:')
   forwarded_file = temp_files.get('.json').name
   open(forwarded_file, 'w').write(forwarded_data)
-  if DEBUG: print >> sys.stderr, '  emscript: phase 1 took %s seconds' % (time.time() - t)
+  if DEBUG: print('  emscript: phase 1 took %s seconds' % (time.time() - t), file=sys.stderr)
 
   # Phase 2 - func
 
@@ -164,7 +165,7 @@ def emscript(infile, settings, outfile, libraries=[]):
     chunks.append(curr)
     curr = ''
   if cores == 1 and total_ll_size < MAX_CHUNK_SIZE: assert len(chunks) == 1, 'no point in splitting up without multiple cores'
-  if DEBUG: print >> sys.stderr, '  emscript: phase 2 working on %d chunks %s (intended chunk size: %.2f MB, meta: %.2f MB, forwarded: %.2f MB, total: %.2f MB)' % (len(chunks), ('using %d cores' % cores) if len(chunks) > 1 else '', chunk_size/(1024*1024.), len(meta)/(1024*1024.), len(forwarded_data)/(1024*1024.), total_ll_size/(1024*1024.))
+  if DEBUG: print('  emscript: phase 2 working on %d chunks %s (intended chunk size: %.2f MB, meta: %.2f MB, forwarded: %.2f MB, total: %.2f MB)' % (len(chunks), ('using %d cores' % cores) if len(chunks) > 1 else '', chunk_size/(1024*1024.), len(meta)/(1024*1024.), len(forwarded_data)/(1024*1024.), total_ll_size/(1024*1024.)), file=sys.stderr)
 
   commands = [(i, chunks[i] + '\n' + meta, settings_file, compiler, forwarded_file, libraries) for i in range(len(chunks))]
 
@@ -180,12 +181,12 @@ def emscript(infile, settings, outfile, libraries=[]):
     # merge forwarded data
     curr_forwarded_json = json.loads(curr_forwarded_data)
     forwarded_json['Types']['preciseI64MathUsed'] = forwarded_json['Types']['preciseI64MathUsed'] or curr_forwarded_json['Types']['preciseI64MathUsed']
-    for key, value in curr_forwarded_json['Functions']['blockAddresses'].iteritems():
+    for key, value in curr_forwarded_json['Functions']['blockAddresses'].items():
       forwarded_json['Functions']['blockAddresses'][key] = value
-    for key in curr_forwarded_json['Functions']['indexedFunctions'].iterkeys():
+    for key in curr_forwarded_json['Functions']['indexedFunctions'].keys():
       indexed_functions.add(key)
   outputs = None
-  if DEBUG: print >> sys.stderr, '  emscript: phase 2 took %s seconds' % (time.time() - t)
+  if DEBUG: print('  emscript: phase 2 took %s seconds' % (time.time() - t), file=sys.stderr)
   if DEBUG: t = time.time()
 
   # calculations on merged forwarded data
@@ -216,7 +217,7 @@ def emscript(infile, settings, outfile, libraries=[]):
   forwarded_data = json.dumps(forwarded_json)
   forwarded_file = temp_files.get('.2.json').name
   open(forwarded_file, 'w').write(indexize(forwarded_data))
-  if DEBUG: print >> sys.stderr, '  emscript: phase 2b took %s seconds' % (time.time() - t)
+  if DEBUG: print('  emscript: phase 2b took %s seconds' % (time.time() - t), file=sys.stderr)
 
   # Phase 3 - post
   if DEBUG: t = time.time()
@@ -225,7 +226,7 @@ def emscript(infile, settings, outfile, libraries=[]):
   out = shared.run_js(compiler, shared.COMPILER_ENGINE, [settings_file, post_file, 'post', forwarded_file] + libraries, stdout=subprocess.PIPE, cwd=path_from_root('src'))
   if DEBUG: outfile.write('// post\n')
   outfile.write(indexize(out))
-  if DEBUG: print >> sys.stderr, '  emscript: phase 3 took %s seconds' % (time.time() - t)
+  if DEBUG: print('  emscript: phase 3 took %s seconds' % (time.time() - t), file=sys.stderr)
 
   outfile.close()
 
@@ -274,7 +275,7 @@ def main(args):
   if len(defines) > 0:
     def lookup(value):
       try:
-        while not unicode(value).isnumeric():
+        while not str(value).isnumeric():
           value = defines[value]
         return value
       except:
@@ -285,13 +286,13 @@ def main(args):
       except:
         pass
       try: # CONST1|CONST2
-        parts = map(lookup, value.split('|'))
-        value = reduce(lambda a, b: a|b, map(eval, parts))
+        parts = list(map(lookup, value.split('|')))
+        value = reduce(lambda a, b: a|b, list(map(eval, parts)))
         return value
       except:
         pass
       return None
-    for key, value in defines.items():
+    for key, value in list(defines.items()):
       value = lookup(value)
       if value is not None:
         defines[key] = str(value)
@@ -341,7 +342,7 @@ if __name__ == '__main__':
   if len(positional) != 1:
     raise RuntimeError('Must provide exactly one positional argument.')
   keywords.infile = os.path.abspath(positional[0])
-  if isinstance(keywords.outfile, basestring):
+  if isinstance(keywords.outfile, str):
     keywords.outfile = open(keywords.outfile, 'w')
   compiler_engine = keywords.compiler
 

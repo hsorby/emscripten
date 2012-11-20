@@ -1,3 +1,3 @@
 #!/usr/bin/env python
 
-from emscripten import exists, generate
+from .emscripten import exists, generate

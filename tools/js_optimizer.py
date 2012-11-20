@@ -63,11 +63,11 @@ def run(filename, passes, js_engine):
     chunks.append(filename)
 
   # XXX Use '--nocrankshaft' to disable crankshaft to work around v8 bug 1895, needed for older v8/node (node 0.6.8+ should be ok)
-  commands = map(lambda chunk: [js_engine, JS_OPTIMIZER, chunk] + passes, chunks)
+  commands = [[js_engine, JS_OPTIMIZER, chunk] + passes for chunk in chunks]
 
   if len(chunks) > 1:
     # We are splitting into chunks. Hopefully we can do that in parallel
-    commands = map(lambda command: command + ['noPrintMetadata'], commands)
+    commands = [command + ['noPrintMetadata'] for command in commands]
     filename += '.jo.js'
 
     fail = None
@@ -79,12 +79,12 @@ def run(filename, passes, js_engine):
 
     if not fail:
       # We can parallelize
-      if DEBUG: print >> sys.stderr, 'splitting up js optimization into %d chunks, using %d cores' % (len(chunks), cores)
+      if DEBUG: print('splitting up js optimization into %d chunks, using %d cores' % (len(chunks), cores), file=sys.stderr)
       pool = multiprocessing.Pool(processes=cores)
       filenames = pool.map(run_on_chunk, commands, chunksize=1)
     else:
       # We can't parallize, but still break into chunks to avoid uglify/node memory issues
-      if DEBUG: print >> sys.stderr, 'splitting up js optimization into %d chunks (not in parallel because %s)' % (len(chunks), fail)
+      if DEBUG: print('splitting up js optimization into %d chunks (not in parallel because %s)' % (len(chunks), fail), file=sys.stderr)
       filenames = [run_on_chunk(command) for command in commands]
 
     f = open(filename, 'w')

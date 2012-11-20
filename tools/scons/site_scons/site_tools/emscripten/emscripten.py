@@ -15,8 +15,8 @@ def generate(env, emscripten_path=None, **kw):
 		CONFIG_FILE = os.path.expanduser(EM_CONFIG)
 		try:
 			exec(open(CONFIG_FILE, 'r').read())
-		except Exception, e:
-  			print >> sys.stderr, 'Error in evaluating %s (at %s): %s' % (EM_CONFIG, CONFIG_FILE, str(e))
+		except Exception as e:
+  			print('Error in evaluating %s (at %s): %s' % (EM_CONFIG, CONFIG_FILE, str(e)), file=sys.stderr)
   			sys.exit(1)
   		
   		emscripten_path = EMSCRIPTEN_ROOT

@@ -102,10 +102,10 @@ AUTODEBUG = os.environ.get('EMCC_AUTODEBUG') # If set to 1, we will run the auto
                                              # dlmalloc makes it hard to compare native and js builds
 EMCC_CFLAGS = os.environ.get('EMCC_CFLAGS') # Additional compiler flags that we treat as if they were passed to us on the commandline
 
-if DEBUG: print >> sys.stderr, '\nemcc invocation: ', ' '.join(sys.argv), (' + ' + EMCC_CFLAGS if EMCC_CFLAGS else '')
+if DEBUG: print('\nemcc invocation: ', ' '.join(sys.argv), (' + ' + EMCC_CFLAGS if EMCC_CFLAGS else ''), file=sys.stderr)
 if EMCC_CFLAGS: sys.argv.append(EMCC_CFLAGS)
 
-if DEBUG and LEAVE_INPUTS_RAW: print >> sys.stderr, 'emcc: leaving inputs raw'
+if DEBUG and LEAVE_INPUTS_RAW: print('emcc: leaving inputs raw', file=sys.stderr)
 
 stdout = PIPE if not DEBUG else None # suppress output of child processes
 stderr = PIPE if not DEBUG else None # unless we are in DEBUG mode
@@ -115,20 +115,20 @@ shared.check_sanity(force=DEBUG)
 # Handle some global flags
 
 if len(sys.argv) == 1:
-  print 'emcc: no input files'
+  print('emcc: no input files')
   exit(1)
 
 if sys.argv[1] == '--version':
-  print '''emcc (Emscripten GCC-like replacement) 2.0
+  print('''emcc (Emscripten GCC-like replacement) 2.0
 Copyright (C) 2012 the Emscripten authors.
 This is free and open source software under the MIT license.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  '''
+  ''')
   exit(0)
 elif sys.argv[1] == '--help':
   this = os.path.basename('em++' if os.environ.get('EMMAKEN_CXX') else 'emcc')
 
-  print '''%s [options] file...
+  print('''%s [options] file...
 
 Most normal gcc/g++ options will work, for example:
   --help                   Display this information
@@ -357,10 +357,10 @@ or LLVM assembly files in human-readable form.
 emcc is affected by several environment variables. For details, view
 the source of emcc (search for 'os.environ').
 
-''' % (this, this, this)
+''' % (this, this, this))
   exit(0)
 elif len(sys.argv) == 2 and sys.argv[1] == '-v': # -v with no inputs
-  print 'emcc (Emscripten GCC-like replacement) 2.0'
+  print('emcc (Emscripten GCC-like replacement) 2.0')
   exit(subprocess.call([shared.CLANG, '-v']))
 
 def is_minus_s_for_emcc(newargs,i):
@@ -368,7 +368,7 @@ def is_minus_s_for_emcc(newargs,i):
   if i+1 < len(newargs) and '=' in newargs[i+1]: # -s OPT=VALUE is for us, -s by itself is a linker option
     return True
   else:
-    print >> sys.stderr, 'emcc: warning: treating -s as linker option and not as -s OPT=VALUE for js compilation'
+    print('emcc: warning: treating -s as linker option and not as -s OPT=VALUE for js compilation', file=sys.stderr)
     return False
 
 # If this is a configure-type thing, do not compile to JavaScript, instead use clang
@@ -421,7 +421,7 @@ if CONFIGURE_CONFIG or CMAKE_CONFIG:
   cmd = [compiler] + list(filter_emscripten_options(sys.argv[1:]))
   if use_clang: cmd += shared.EMSDK_OPTS + ['-DEMSCRIPTEN']
 
-  if DEBUG: print >> sys.stderr, 'emcc, just configuring: ', ' '.join(cmd)
+  if DEBUG: print('emcc, just configuring: ', ' '.join(cmd), file=sys.stderr)
   if debug_configure: open(tempout, 'a').write('emcc, just configuring: ' + ' '.join(cmd) + '\n\n')
 
   if use_clang:
@@ -435,10 +435,10 @@ if CONFIGURE_CONFIG or CMAKE_CONFIG:
           cmd[i+1] += '.js'
         target = cmd[i+1]
         break
-    print 't1', target
+    print('t1', target)
     if not target:
       target = 'a.out.js'
-    print 't2', target, only_object
+    print('t2', target, only_object)
     os.environ['EMMAKEN_JUST_CONFIGURE_RECURSE'] = '1'
     ret = subprocess.call(cmd)
     os.environ['EMMAKEN_JUST_CONFIGURE_RECURSE'] = ''
@@ -492,7 +492,7 @@ def uniquename(name):
 
 if len(sys.argv) == 1 or sys.argv[1] in ['x', 't']:
   # noop ar
-  if DEBUG: print >> sys.stderr, 'emcc, just ar'
+  if DEBUG: print('emcc, just ar', file=sys.stderr)
   sys.exit(0)
 
 use_cxx = True
@@ -509,7 +509,7 @@ for i in range(1, len(sys.argv)):
 if '-M' in sys.argv or '-MM' in sys.argv:
   # Just output dependencies, do not compile. Warning: clang and gcc behave differently with -MF! (clang seems to not recognize it)
   cmd = [CC] + shared.COMPILER_OPTS + sys.argv[1:]
-  if DEBUG: print >> sys.stderr, 'emcc, just dependencies: ', ' '.join(cmd)
+  if DEBUG: print('emcc, just dependencies: ', ' '.join(cmd), file=sys.stderr)
   exit(subprocess.call(cmd))
 
 # Check if a target is specified
@@ -525,11 +525,11 @@ for i in range(len(sys.argv)-1):
 
 if header: # header or such
   if len(sys.argv) >= 3: # if there is a source and a target, then copy, otherwise do nothing
-    sys.argv = filter(lambda arg: not arg.startswith('-I'), sys.argv)
-    if DEBUG: print >> sys.stderr, 'Just copy:', sys.argv[-1], target
+    sys.argv = [arg for arg in sys.argv if not arg.startswith('-I')]
+    if DEBUG: print('Just copy:', sys.argv[-1], target, file=sys.stderr)
     shutil.copy(sys.argv[-1], target)
   else:
-    if DEBUG: print >> sys.stderr, 'No-op.'
+    if DEBUG: print('No-op.', file=sys.stderr)
   exit(0)
 
 if TEMP_DIR:
@@ -582,7 +582,7 @@ try:
     if newargs[i].startswith('-O'):
       requested_level = newargs[i][2]
       if requested_level == 's':
-        print >> sys.stderr, 'emcc: warning: -Os is ignored (use -O0, -O1, -O2)'
+        print('emcc: warning: -Os is ignored (use -O0, -O1, -O2)', file=sys.stderr)
       else:
         try:
           opt_level = int(requested_level)
@@ -680,11 +680,11 @@ try:
       newargs[i] = ''
     elif newargs[i] == '--clear-cache':
       newargs[i] = ''
-      print >> sys.stderr, 'emcc: clearing cache'
+      print('emcc: clearing cache', file=sys.stderr)
       shared.Cache.erase()
     elif newargs[i].startswith(('-I/', '-L/')):
       if not absolute_warning_shown:
-        print >> sys.stderr, 'emcc: warning: -I or -L of an absolute path encountered. If this is to a local system header/library, it may cause problems (local system files make sense for compiling natively on your system, but not necessarily to JavaScript)' # Of course an absolute path to a non-system-specific library or header is fine, and you can ignore this warning. The danger are system headers that are e.g. x86 specific and nonportable. The emscripten bundled headers are modified to be portable, local system ones are generally not
+        print('emcc: warning: -I or -L of an absolute path encountered. If this is to a local system header/library, it may cause problems (local system files make sense for compiling natively on your system, but not necessarily to JavaScript)', file=sys.stderr) # Of course an absolute path to a non-system-specific library or header is fine, and you can ignore this warning. The danger are system headers that are e.g. x86 specific and nonportable. The emscripten bundled headers are modified to be portable, local system ones are generally not
         absolute_warning_shown = True
   newargs = [ arg for arg in newargs if arg is not '' ]
 
@@ -750,9 +750,9 @@ try:
             libs.append(l)
             newargs[i] = ''
           else:
-            print >> sys.stderr, 'emcc: %s: warning: Not valid LLVM bitcode' % arg
+            print('emcc: %s: warning: Not valid LLVM bitcode' % arg, file=sys.stderr)
       else:
-        print >> sys.stderr, 'emcc: %s: warning: No such file or directory' % arg
+        print('emcc: %s: warning: No such file or directory' % arg, file=sys.stderr)
     elif arg.startswith('-L'):
       lib_dirs.append(arg[2:])
       newargs[i] = ''
@@ -766,7 +766,7 @@ try:
 
   # Find library files
   for lib in libs:
-    if DEBUG: print >> sys.stderr, 'emcc: looking for library "%s"' % lib
+    if DEBUG: print('emcc: looking for library "%s"' % lib, file=sys.stderr)
     found = False
     for prefix in LIB_PREFIXES:
       for suff in STATICLIB_SUFFIXES + DYNAMICLIB_SUFFIXES:
@@ -774,7 +774,7 @@ try:
         for lib_dir in lib_dirs:
           path = os.path.join(lib_dir, name)
           if os.path.exists(path):
-            if DEBUG: print >> sys.stderr, 'emcc: found library "%s" at %s' % (lib, path)
+            if DEBUG: print('emcc: found library "%s" at %s' % (lib, path), file=sys.stderr)
             input_files.append(path)
             found = True
             break
@@ -782,11 +782,11 @@ try:
       if found: break
 
   if ignore_dynamic_linking:
-    input_files = filter(lambda input_file: not input_file.endswith(DYNAMICLIB_SUFFIXES), input_files)
+    input_files = [input_file for input_file in input_files if not input_file.endswith(DYNAMICLIB_SUFFIXES)]
 
   if len(input_files) == 0:
-    print >> sys.stderr, 'emcc: no input files'
-    print >> sys.stderr, 'note that input files without a known suffix are ignored, make sure your input files end with one of: ' + str(SOURCE_SUFFIXES + BITCODE_SUFFIXES + DYNAMICLIB_SUFFIXES + STATICLIB_SUFFIXES + ASSEMBLY_SUFFIXES)
+    print('emcc: no input files', file=sys.stderr)
+    print('note that input files without a known suffix are ignored, make sure your input files end with one of: ' + str(SOURCE_SUFFIXES + BITCODE_SUFFIXES + DYNAMICLIB_SUFFIXES + STATICLIB_SUFFIXES + ASSEMBLY_SUFFIXES), file=sys.stderr)
     exit(0)
 
   newargs += CC_ADDITIONAL_ARGS
@@ -827,30 +827,30 @@ try:
 
   ## Compile source code to bitcode
 
-  if DEBUG: print >> sys.stderr, 'emcc: compiling to bitcode'
+  if DEBUG: print('emcc: compiling to bitcode', file=sys.stderr)
 
   temp_files = []
 
   # First, generate LLVM bitcode. For each input file, we get base.o with bitcode
   for input_file in input_files:
     if input_file.endswith(SOURCE_SUFFIXES):
-      if DEBUG: print >> sys.stderr, 'emcc: compiling source file: ', input_file
+      if DEBUG: print('emcc: compiling source file: ', input_file, file=sys.stderr)
       output_file = in_temp(unsuffixed(uniquename(input_file)) + '.o')
       temp_files.append(output_file)
       args = newargs + ['-emit-llvm', '-c', input_file, '-o', output_file]
-      if DEBUG: print >> sys.stderr, "emcc running:", call, ' '.join(args)
+      if DEBUG: print("emcc running:", call, ' '.join(args), file=sys.stderr)
       execute([call] + args) # let compiler frontend print directly, so colors are saved (PIPE kills that)
       if not os.path.exists(output_file):
-        print >> sys.stderr, 'emcc: compiler frontend failed to generate LLVM bitcode, halting'
+        print('emcc: compiler frontend failed to generate LLVM bitcode, halting', file=sys.stderr)
         sys.exit(1)
     else: # bitcode
       if input_file.endswith(BITCODE_SUFFIXES):
-        if DEBUG: print >> sys.stderr, 'emcc: copying bitcode file: ', input_file
+        if DEBUG: print('emcc: copying bitcode file: ', input_file, file=sys.stderr)
         temp_file = in_temp(unsuffixed(uniquename(input_file)) + '.o')
         shutil.copyfile(input_file, temp_file)
         temp_files.append(temp_file)
       elif input_file.endswith(DYNAMICLIB_SUFFIXES) or shared.Building.is_ar(input_file):
-        if DEBUG: print >> sys.stderr, 'emcc: copying library file: ', input_file
+        if DEBUG: print('emcc: copying library file: ', input_file, file=sys.stderr)
         temp_file = in_temp(uniquename(input_file))
         shutil.copyfile(input_file, temp_file)
         temp_files.append(temp_file)
@@ -858,7 +858,7 @@ try:
         if not LEAVE_INPUTS_RAW:
           # Note that by assembling the .ll file, then disassembling it later, we will
           # remove annotations which is a good thing for compilation time
-          if DEBUG: print >> sys.stderr, 'emcc: assembling assembly file: ', input_file
+          if DEBUG: print('emcc: assembling assembly file: ', input_file, file=sys.stderr)
           temp_file = in_temp(unsuffixed(uniquename(input_file)) + '.o')
           shared.Building.llvm_as(input_file, temp_file)
           temp_files.append(temp_file)
@@ -868,7 +868,7 @@ try:
   # If we were just asked to generate bitcode, stop there
   if final_suffix not in JS_CONTAINING_SUFFIXES:
     if llvm_opts > 0:
-      print >> sys.stderr, 'emcc: warning: -Ox flags ignored, since not generating JavaScript'
+      print('emcc: warning: -Ox flags ignored, since not generating JavaScript', file=sys.stderr)
     if not specified_target:
       for input_file in input_files:
         shutil.move(in_temp(unsuffixed(uniquename(input_file)) + '.o'), unsuffixed_basename(input_file) + '.' + final_suffix)
@@ -879,13 +879,13 @@ try:
         assert len(original_input_files) == 1 or not has_dash_c, 'fatal error: cannot specify -o with -c with multiple files' + str(sys.argv) + ':' + str(original_input_files)
         # We have a specified target (-o <target>), which is not JavaScript or HTML, and
         # we have multiple files: Link them
-        if DEBUG: print >> sys.stderr, 'emcc: link: ' + str(temp_files)
+        if DEBUG: print('emcc: link: ' + str(temp_files), file=sys.stderr)
         shared.Building.link(temp_files, specified_target, remove_duplicates=remove_duplicates)
     exit(0)
 
   ## Continue on to create JavaScript
 
-  if DEBUG: print >> sys.stderr, 'emcc: will generate JavaScript'
+  if DEBUG: print('emcc: will generate JavaScript', file=sys.stderr)
 
   extra_files_to_link = []
 
@@ -898,7 +898,7 @@ try:
 
     # dlmalloc
     def create_dlmalloc():
-      if DEBUG: print >> sys.stderr, 'emcc: building dlmalloc for cache'
+      if DEBUG: print('emcc: building dlmalloc for cache', file=sys.stderr)
       execute(shared.ENV_PREFIX + ['python', shared.EMCC, shared.path_from_root('system', 'lib', 'dlmalloc.c'), '-g', '-o', in_temp('dlmalloc.o')], stdout=stdout, stderr=stderr)
       # we include the libc++ new stuff here, so that the common case of using just new/delete is quick to link
       execute(shared.ENV_PREFIX + ['python', shared.EMXX, shared.path_from_root('system', 'lib', 'libcxx', 'new.cpp'), '-g', '-o', in_temp('new.o')], stdout=stdout, stderr=stderr)
@@ -920,7 +920,7 @@ try:
 
     # libcxx
     def create_libcxx():
-      if DEBUG: print >> sys.stderr, 'emcc: building libcxx for cache'
+      if DEBUG: print('emcc: building libcxx for cache', file=sys.stderr)
       os = []
       for src in ['algorithm.cpp', 'condition_variable.cpp', 'future.cpp', 'iostream.cpp', 'memory.cpp', 'random.cpp', 'stdexcept.cpp', 'system_error.cpp', 'utility.cpp', 'bind.cpp', 'debug.cpp', 'hash.cpp', 'mutex.cpp', 'string.cpp', 'thread.cpp', 'valarray.cpp', 'chrono.cpp', 'exception.cpp', 'ios.cpp', 'locale.cpp', 'regex.cpp', 'strstream.cpp', 'typeinfo.cpp']:
         o = in_temp(src + '.o')
@@ -933,13 +933,13 @@ try:
       # libcxx might need corrections, so turn them all on. TODO: check which are actually needed
       shared.Settings.CORRECT_SIGNS = shared.Settings.CORRECT_OVERFLOWS = shared.Settings.CORRECT_ROUNDINGS = 1
       #print >> sys.stderr, 'emcc: info: using libcxx turns on CORRECT_* options'
-    libcxx_symbols = map(lambda line: line.strip().split(' ')[1], open(shared.path_from_root('system', 'lib', 'libcxx', 'symbols')).readlines())
-    libcxx_symbols = filter(lambda symbol: symbol not in dlmalloc_symbols, libcxx_symbols)
+    libcxx_symbols = [line.strip().split(' ')[1] for line in open(shared.path_from_root('system', 'lib', 'libcxx', 'symbols')).readlines()]
+    libcxx_symbols = [symbol for symbol in libcxx_symbols if symbol not in dlmalloc_symbols]
     libcxx_symbols = set(libcxx_symbols)
 
     # libcxxabi - just for dynamic_cast for now
     def create_libcxxabi():
-      if DEBUG: print >> sys.stderr, 'emcc: building libcxxabi for cache'
+      if DEBUG: print('emcc: building libcxxabi for cache', file=sys.stderr)
       os = []
       for src in ['private_typeinfo.cpp']:
         o = in_temp(src + '.o')
@@ -951,8 +951,8 @@ try:
       assert shared.Settings.QUANTUM_SIZE == 4, 'We do not support libc++abi with QUANTUM_SIZE == 1'
       #print >> sys.stderr, 'emcc: info: using libcxxabi, this may need CORRECT_* options'
       #shared.Settings.CORRECT_SIGNS = shared.Settings.CORRECT_OVERFLOWS = shared.Settings.CORRECT_ROUNDINGS = 1
-    libcxxabi_symbols = map(lambda line: line.strip().split(' ')[1], open(shared.path_from_root('system', 'lib', 'libcxxabi', 'symbols')).readlines())
-    libcxxabi_symbols = filter(lambda symbol: symbol not in dlmalloc_symbols, libcxxabi_symbols)
+    libcxxabi_symbols = [line.strip().split(' ')[1] for line in open(shared.path_from_root('system', 'lib', 'libcxxabi', 'symbols')).readlines()]
+    libcxxabi_symbols = [symbol for symbol in libcxxabi_symbols if symbol not in dlmalloc_symbols]
     libcxxabi_symbols = set(libcxxabi_symbols)
 
     force = False # If we have libcxx, we must force inclusion of dlmalloc, since libcxx uses new internally. Note: this is kind of hacky
@@ -969,10 +969,10 @@ try:
             need.append(library_symbol)
           if library_symbol in symbols.defs:
             has.append(library_symbol)
-      if DEBUG: print >> sys.stderr, 'emcc: considering including %s: we need |%s| and have |%s|' % (name, str(need), str(has))
+      if DEBUG: print('emcc: considering including %s: we need |%s| and have |%s|' % (name, str(need), str(has)), file=sys.stderr)
       if force or (need and not has):
         # We need to build and link the library in
-        if DEBUG: print >> sys.stderr, 'emcc: including %s' % name
+        if DEBUG: print('emcc: including %s' % name, file=sys.stderr)
         extra_files_to_link.append(shared.Cache.get(name, create))
         force = True
         if fix:
@@ -982,7 +982,7 @@ try:
   if len(input_files) + len(extra_files_to_link) > 1 or \
      (not LEAVE_INPUTS_RAW and not (suffix(temp_files[0]) in BITCODE_SUFFIXES or suffix(temp_files[0]) in DYNAMICLIB_SUFFIXES) and shared.Building.is_ar(temp_files[0])):
     linker_inputs = temp_files + extra_files_to_link
-    if DEBUG: print >> sys.stderr, 'emcc: linking: ', linker_inputs
+    if DEBUG: print('emcc: linking: ', linker_inputs, file=sys.stderr)
     shared.Building.link(linker_inputs, in_temp(target_basename + '.bc'), remove_duplicates=remove_duplicates)
     final = in_temp(target_basename + '.bc')
   else:
@@ -993,7 +993,7 @@ try:
       final = input_files[0]
 
   if DEBUG:
-    print >> sys.stderr, 'emcc: saving intermediate processing steps to %s' % shared.EMSCRIPTEN_TEMP_DIR
+    print('emcc: saving intermediate processing steps to %s' % shared.EMSCRIPTEN_TEMP_DIR, file=sys.stderr)
 
     intermediate_counter = 0
     intermediate_time = None
@@ -1003,7 +1003,7 @@ try:
       intermediate_counter += 1
       now = time.time()
       if intermediate_time:
-        print >> sys.stderr, 'emcc:    step took %.2f seconds' % (now - intermediate_time)
+        print('emcc:    step took %.2f seconds' % (now - intermediate_time), file=sys.stderr)
       intermediate_time = now
 
     if not LEAVE_INPUTS_RAW: save_intermediate('basebc', 'bc')
@@ -1012,7 +1012,7 @@ try:
   if not LEAVE_INPUTS_RAW:
     link_opts = [] if keep_debug else ['-strip-debug']
     if llvm_opts > 0:
-      if DEBUG: print >> sys.stderr, 'emcc: LLVM -O%d' % llvm_opts
+      if DEBUG: print('emcc: LLVM -O%d' % llvm_opts, file=sys.stderr)
       shared.Building.llvm_opt(in_temp(target_basename + '.bc'), llvm_opts)
       if DEBUG: save_intermediate('opt', 'bc')
       # Do LTO in a separate pass to work around LLVM bug XXX (see failure e.g. in cubescript)
@@ -1024,7 +1024,7 @@ try:
         # At least remove dead functions etc., this potentially saves a lot in the size of the generated code (and the time to compile it)
         link_opts += ['-internalize', '-globaldce']
     if link_opts:
-      if DEBUG: print >> sys.stderr, 'emcc: LLVM linktime:', link_opts
+      if DEBUG: print('emcc: LLVM linktime:', link_opts, file=sys.stderr)
       shared.Building.llvm_opt(in_temp(target_basename + '.bc'), link_opts)
       if DEBUG: save_intermediate('linktime', 'bc')
 
@@ -1036,20 +1036,20 @@ try:
   if DEBUG: save_intermediate('ll', 'll')
 
   if AUTODEBUG:
-    if DEBUG: print >> sys.stderr, 'emcc: autodebug'
+    if DEBUG: print('emcc: autodebug', file=sys.stderr)
     execute(shared.ENV_PREFIX + ['python', shared.AUTODEBUGGER, final, final + '.ad.ll'])
     final += '.ad.ll'
     if DEBUG: save_intermediate('autodebug', 'll')
 
   # Emscripten
-  if DEBUG: print >> sys.stderr, 'emcc: LLVM => JS'
+  if DEBUG: print('emcc: LLVM => JS', file=sys.stderr)
   extra_args = [] if not js_libraries else ['--libraries', ','.join(map(os.path.abspath, js_libraries))]
   final = shared.Building.emscripten(final, append_ext=False, extra_args=extra_args)
   if DEBUG: save_intermediate('original')
 
   # Embed and preload files
   if len(preload_files) + len(embed_files) > 0:
-    if DEBUG: print >> sys.stderr, 'emcc: setting up files'
+    if DEBUG: print('emcc: setting up files', file=sys.stderr)
     file_args = []
     if len(preload_files) > 0:
       file_args.append('--preload')
@@ -1067,7 +1067,7 @@ try:
 
   # Apply pre and postjs files
   if pre_js or post_js:
-    if DEBUG: print >> sys.stderr, 'emcc: applying pre/postjses'
+    if DEBUG: print('emcc: applying pre/postjses', file=sys.stderr)
     src = open(final).read()
     final += '.pp.js'
     open(final, 'w').write(pre_js + src + post_js)
@@ -1075,7 +1075,7 @@ try:
 
   # Add bindings glue if used
   if bind:
-    if DEBUG: print >> sys.stderr, 'emcc: adding embind glue'
+    if DEBUG: print('emcc: adding embind glue', file=sys.stderr)
     src = open(final).read().replace('// {{PRE_RUN_ADDITIONS}}', '// {{PRE_RUN_ADDITIONS}}\n' +
             open(shared.path_from_root('src', 'embind', 'embind.js')).read() +
             open(shared.path_from_root('src', 'embind', 'emval.js')).read()
@@ -1089,7 +1089,7 @@ try:
     shutil.copyfile(final, final + '.tr.js')
     final += '.tr.js'
     posix = True if not shared.WINDOWS else False
-    if DEBUG: print >> sys.stderr, 'emcc: applying transform: %s' % js_transform
+    if DEBUG: print('emcc: applying transform: %s' % js_transform, file=sys.stderr)
     execute(shlex.split(js_transform, posix=posix) + [os.path.abspath(final)])
     if DEBUG: save_intermediate('transformed')
 
@@ -1099,18 +1099,18 @@ try:
     global final, js_optimizer_queue
     if len(js_optimizer_queue) > 0:
       if DEBUG < 2:
-        if DEBUG: print >> sys.stderr, 'emcc: applying js optimization passes:', js_optimizer_queue
+        if DEBUG: print('emcc: applying js optimization passes:', js_optimizer_queue, file=sys.stderr)
         final = shared.Building.js_optimizer(final, js_optimizer_queue)
         if DEBUG: save_intermediate('js_opts')
       else:
         for name in js_optimizer_queue:
-          print >> sys.stderr, 'emcc: applying js optimization pass:', name
+          print('emcc: applying js optimization pass:', name, file=sys.stderr)
           final = shared.Building.js_optimizer(final, [name])
           save_intermediate(name)
       js_optimizer_queue = []
 
   if opt_level >= 1:
-    if DEBUG: print >> sys.stderr, 'emcc: running pre-closure post-opts'
+    if DEBUG: print('emcc: running pre-closure post-opts', file=sys.stderr)
 
     if DEBUG >= 2:
       # Clean up the syntax a bit
@@ -1129,12 +1129,12 @@ try:
   if closure:
     flush_js_optimizer_queue()
 
-    if DEBUG: print >> sys.stderr, 'emcc: running closure'
+    if DEBUG: print('emcc: running closure', file=sys.stderr)
     final = shared.Building.closure_compiler(final)
     if DEBUG: save_intermediate('closure')
 
   if opt_level >= 1:
-    if DEBUG: print >> sys.stderr, 'emcc: running post-closure post-opts'
+    if DEBUG: print('emcc: running post-closure post-opts', file=sys.stderr)
     js_optimizer_queue += ['simplifyExpressionsPost']
 
   if minify_whitespace:
@@ -1144,7 +1144,7 @@ try:
 
   # If we were asked to also generate HTML, do that
   if final_suffix == 'html':
-    if DEBUG: print >> sys.stderr, 'emcc: generating HTML'
+    if DEBUG: print('emcc: generating HTML', file=sys.stderr)
     shell = open(shell_path).read()
     html = open(target, 'w')
     if not Compression.on:
@@ -1228,5 +1228,5 @@ finally:
     except:
       pass
   else:
-    print >> sys.stderr, 'emcc saved files are in:', temp_dir
+    print('emcc saved files are in:', temp_dir, file=sys.stderr)
 

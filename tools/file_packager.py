@@ -35,8 +35,8 @@ TODO:        You can also provide .crn files yourself, pre-crunched. With this o
 
 import os, sys, shutil, random
 
-from shared import Compression, execute, suffix, unsuffixed
-import shared
+from .shared import Compression, execute, suffix, unsuffixed
+from . import shared
 from subprocess import Popen, PIPE, STDOUT
 
 data_target = sys.argv[1]
@@ -81,7 +81,7 @@ for arg in sys.argv[1:]:
     in_embed = False
     in_compress = 0
   elif arg.startswith('--crunch'):
-    from shared import CRUNCH
+    from .shared import CRUNCH
     crunch = arg.split('=')[1] if '=' in arg else '128'
     in_preload = False
     in_embed = False
@@ -107,9 +107,9 @@ for arg in sys.argv[1:]:
       Compression.js_name = arg
       in_compress = 0
 
-print '''
+print('''
 (function() {
-'''
+''')
 
 code = '''
 function assert(check, msg) {
@@ -127,7 +127,7 @@ def add(mode, dirname, names):
 for file_ in data_files:
   if os.path.isdir(file_['name']):
     os.path.walk(file_['name'], add, file_['mode'])
-data_files = filter(lambda file_: not os.path.isdir(file_['name']), data_files)
+data_files = [file_ for file_ in data_files if not os.path.isdir(file_['name'])]
 
 for file_ in data_files:
   file_['name'] = file_['name'].replace(os.path.sep, '/') # name in the filesystem, native and emulated
@@ -139,7 +139,7 @@ def was_seen(name):
   if seen.get(name): return True
   seen[name] = 1
   return False
-data_files = filter(lambda file_: not was_seen(file_['name']), data_files)
+data_files = [file_ for file_ in data_files if not was_seen(file_['name'])]
 
 if AV_WORKAROUND:
   random.shuffle(data_files)
@@ -152,7 +152,7 @@ for file_ in data_files:
 # Crunch files
 if crunch:
   shutil.copyfile(shared.path_from_root('tools', 'crunch-worker.js'), 'crunch-worker.js')
-  print '''
+  print('''
     var decrunchWorker = new Worker('crunch-worker.js');
     var decrunchCallbacks = [];
     decrunchWorker.onmessage = function(msg) {
@@ -168,7 +168,7 @@ if crunch:
       });
       decrunchCallbacks.push(callback);
     }
-'''
+''')
 
   for file_ in data_files:
     if file_['name'].endswith(CRUNCH_INPUT_SUFFIX):
@@ -228,7 +228,7 @@ if has_preloaded:
     curr = open(file_['localname'], 'rb').read()
     file_['data_end'] = start + len(curr)
     if AV_WORKAROUND: curr += '\x00'
-    print >> sys.stderr, 'bundling', file_['name'], file_['localname'], file_['data_start'], file_['data_end']
+    print('bundling', file_['name'], file_['localname'], file_['data_start'], file_['data_end'], file=sys.stderr)
     start += len(curr)
     data.write(curr)
   data.close()
@@ -252,7 +252,7 @@ for file_ in data_files:
   filename = file_['name']
   if file_['mode'] == 'embed':
     # Embed
-    code += '''Module['FS_createDataFile']('/%s', '%s', %s, true, true);\n''' % (os.path.dirname(filename), os.path.basename(filename), str(map(ord, open(file_['localname'], 'rb').read())))
+    code += '''Module['FS_createDataFile']('/%s', '%s', %s, true, true);\n''' % (os.path.dirname(filename), os.path.basename(filename), str(list(map(ord, open(file_['localname'], 'rb').read()))))
   elif file_['mode'] == 'preload':
     # Preload
     varname = 'filePreload%d' % counter
@@ -376,26 +376,26 @@ if has_preloaded:
   ''' % (data_target, os.path.basename(Compression.compressed_name(data_target) if Compression.on else data_target), use_data, data_target) # use basename because from the browser's point of view, we need to find the datafile in the same dir as the html file
 
 if pre_run:
-  print '''
+  print('''
   if (typeof Module == 'undefined') Module = {};
   if (!Module['preRun']) Module['preRun'] = [];
   Module["preRun"].push(function() {
-'''
+''')
 
-print code
+print(code)
 
 if pre_run:
-  print '  });\n'
+  print('  });\n')
 
 if crunch:
-  print '''
+  print('''
   if (!Module['postRun']) Module['postRun'] = [];
   Module["postRun"].push(function() {
     decrunchWorker.terminate();
   });
-'''
+''')
 
-print '''
+print('''
 })();
-'''
+''')
 

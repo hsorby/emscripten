@@ -12,7 +12,7 @@ for i in range(len(lines)):
   line = lines[i]
   if line.startswith('AD:-2,'):
     depth -= 1
-  print str(depth) + '|' + line
+  print(str(depth) + '|' + line)
   if line.startswith('AD:-1,'):
     depth += 1
 

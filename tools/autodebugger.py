@@ -276,5 +276,5 @@ f = open(ofilename, 'w')
 f.write('\n'.join(lines) + '\n' + POSTAMBLE + '\n')
 f.close()
 
-print 'Success.'
+print('Success.')
 

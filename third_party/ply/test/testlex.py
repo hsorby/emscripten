@@ -2,7 +2,7 @@
 
 import unittest
 try:
-    import StringIO
+    import io
 except ImportError:
     import io as StringIO
 
@@ -60,8 +60,8 @@ def run_import(module):
 # Tests related to errors and warnings when building lexers
 class LexErrorWarningTests(unittest.TestCase):
     def setUp(self):
-        sys.stderr = StringIO.StringIO()
-        sys.stdout = StringIO.StringIO()
+        sys.stderr = io.StringIO()
+        sys.stdout = io.StringIO()
         if sys.hexversion >= 0x3020000:
             warnings.filterwarnings('ignore',category=ResourceWarning)
 
@@ -286,8 +286,8 @@ import shutil
 # Tests related to various build options associated with lexers
 class LexBuildOptionTests(unittest.TestCase):
     def setUp(self):
-        sys.stderr = StringIO.StringIO()
-        sys.stdout = StringIO.StringIO()
+        sys.stderr = io.StringIO()
+        sys.stdout = io.StringIO()
     def tearDown(self):
         sys.stderr = sys.__stderr__
         sys.stdout = sys.__stdout__
@@ -574,8 +574,8 @@ class LexBuildOptionTests(unittest.TestCase):
 # Tests related to run-time behavior of lexers
 class LexRunTests(unittest.TestCase):
     def setUp(self):
-        sys.stderr = StringIO.StringIO()
-        sys.stdout = StringIO.StringIO()
+        sys.stderr = io.StringIO()
+        sys.stdout = io.StringIO()
     def tearDown(self):
         sys.stderr = sys.__stderr__
         sys.stdout = sys.__stdout__

@@ -45,5 +45,5 @@ for line in data:
   cleaned = cleaned[1:-2]
   if cleaned == '(null)': continue
   if ' throw ' in cleaned: continue
-  print func, '=', cleaned
+  print(func, '=', cleaned)
 

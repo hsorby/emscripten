@@ -17,7 +17,7 @@ while True:
     defaults[i] = random.choice(b)
     b.remove(defaults[i])
     branches[i] = b
-  print num, density
+  print(num, density)
 
   for temp in ['fuzz', 'fuzz.fast.js', 'fuzz.slow.js', 'fuzz.cpp']:
     try:
@@ -97,19 +97,19 @@ int main() {
 
   open('fuzz.slow.js', 'w').write(slow)
   open('fuzz.cpp', 'w').write(fast)
-  print '_'
+  print('_')
   slow_out = subprocess.Popen(['/home/alon/Dev/mozilla-central/js/src/fast/js', '-m', '-n', 'fuzz.slow.js'], stdout=subprocess.PIPE).communicate()[0]
 
-  print '.'
+  print('.')
   subprocess.call(['g++', 'fuzz.cpp', 'Relooper.o', '-o', 'fuzz', '-g'])
-  print '*'
+  print('*')
   subprocess.call(['./fuzz'], stdout=open('fuzz.fast.js', 'w'))
-  print '-'
+  print('-')
   fast_out = subprocess.Popen(['/home/alon/Dev/mozilla-central/js/src/fast/js', '-m', '-n', 'fuzz.fast.js'], stdout=subprocess.PIPE).communicate()[0]
-  print
+  print()
 
   if slow_out != fast_out:
-    print ''.join([a.rstrip()+'\n' for a in difflib.unified_diff(slow_out.split('\n'), fast_out.split('\n'), fromfile='slow', tofile='fast')])
+    print(''.join([a.rstrip()+'\n' for a in difflib.unified_diff(slow_out.split('\n'), fast_out.split('\n'), fromfile='slow', tofile='fast')]))
     assert False
 
   #break

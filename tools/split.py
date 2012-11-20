@@ -87,8 +87,8 @@ def split_javascript_file(input_filename, output_filename_prefix, max_part_size_
     # the execution of the generated Emscripten application and requires all the extracted functions.
     output_html_include_file.write("<script type=\"text/javascript\" src=\"" + output_main_filename + "\"></script>")
 
-  except Exception, e:
-    print >> sys.stderr, 'error: Splitting of Emscripten generated Javascript failed: %s' % str(e)
+  except Exception as e:
+    print('error: Splitting of Emscripten generated Javascript failed: %s' % str(e), file=sys.stderr)
   
   finally:
      if input_file is not None: input_file.close()
